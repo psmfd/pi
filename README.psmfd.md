@@ -14,6 +14,15 @@ used to build, scan, attest, and publish PSMFD-owned pi runtime releases.
 See [`PROVENANCE.md`](PROVENANCE.md) for the seed commit, trust statement, and
 zero-divergence policy.
 
+## PSMFD automation boundary
+
+This mirror does not run upstream workflows by default. Upstream workflows are
+reference material only; runnable automation must be PSMFD-developed,
+PSMFD-adapted, or explicitly PSMFD-adopted.
+
+See [`.psmfd/security-baseline.md`](.psmfd/security-baseline.md) for the
+canonical workflow execution policy and pre-public checklist.
+
 ## Security
 
 See [`SECURITY.md`](SECURITY.md). This mirror should not contain repository

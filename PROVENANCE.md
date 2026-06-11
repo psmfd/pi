@@ -29,6 +29,15 @@ merge.
 
 Approved overlay paths are listed in `.psmfd/overlay-allowlist.txt`.
 
+## Upstream automation provenance
+
+This repository preserves upstream workflow history for provenance and reference
+only. Retention does not approve execution.
+
+Upstream workflows are reference-only unless PSMFD explicitly classifies them as
+adapted or adopted. Any workflow that runs in this repository must be reviewed
+against the PSMFD security baseline and recorded in the approved workflow list.
+
 ## Release artifacts
 
 PSMFD release tags use the form `vX.Y.Z-psmfd.N`. These tags identify

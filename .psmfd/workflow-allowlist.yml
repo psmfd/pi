@@ -1,0 +1,8 @@
+# Canonical list of workflows approved to run in psmfd/pi.
+version: 1
+workflows:
+  - path: .github/workflows/psmfd-zero-divergence.yml
+    classification: psmfd-developed
+    purpose: Enforce that normal PRs only change approved PSMFD overlay paths.
+    approved_by: PSMFD
+    approval_reference: PR #2

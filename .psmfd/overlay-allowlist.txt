@@ -10,3 +10,5 @@ NOTICE.psmfd.md
 .github/CODEOWNERS
 .github/dependabot.yml
 .github/workflows/psmfd-*.yml
+.github/workflows/psmfd-*.yaml
+.github/workflows-upstream-reference/**
