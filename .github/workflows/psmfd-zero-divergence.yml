@@ -55,6 +55,7 @@ jobs:
 
           EXACT = {
               "PROVENANCE.md",
+              "README.md",
               "README.psmfd.md",
               "SECURITY.md",
               "NOTICE.psmfd.md",
@@ -65,7 +66,7 @@ jobs:
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
               re.compile(r"^\.github/workflows/psmfd-[^/]+\.ya?ml$"),
-              re.compile(r"^\.github/workflows-upstream-reference/.+\.ya?ml$"),
+              re.compile(r"^\.github/workflows-upstream-reference/[^/]+\.ya?ml$"),
               re.compile(r"^\.github/workflows-upstream-reference/README\.md$"),
           )
 

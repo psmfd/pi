@@ -19,6 +19,11 @@ PSMFD-owned commits are limited to mirror overlay files: documentation,
 security policy, repository metadata, and CI/release workflows used to build,
 scan, attest, and publish PSMFD release artifacts.
 
+The root `README.md` is intentionally replaced by PSMFD so GitHub's public
+landing page clearly identifies this repository as a detached mirror. Upstream
+project documentation remains available from the upstream repository and is not
+copied here as an overlay.
+
 ## Zero-divergence policy
 
 The mirror must not carry behavioral source patches. PSMFD changes are limited
@@ -29,6 +34,12 @@ merge.
 Approved overlay paths are listed in `.psmfd/overlay-allowlist.txt`. The active
 zero-divergence guard also enforces these paths; updates to the text allowlist
 and guard implementation must land together.
+
+The guard intentionally skips path enforcement only for same-repository PRs from
+trusted `sync/upstream-*` branches authored by the configured trusted sync
+actor. That bypass exists for upstream-history synchronization and does not
+approve source patches; trusted sync PRs still require maintainer review before
+merge.
 
 ## Upstream automation provenance
 

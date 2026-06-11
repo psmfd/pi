@@ -12,8 +12,10 @@ release artifacts, provenance, or attestations.
 ## Reporting vulnerabilities
 
 Report PSMFD mirror-specific security concerns through GitHub private
-vulnerability reporting if enabled for this repository, or through the
-maintainer's established private security contact.
+vulnerability reporting for this repository. If private vulnerability reporting
+is temporarily unavailable, do not open a public disclosure; contact the PSMFD
+maintainer through an established private channel and request that private
+vulnerability reporting be enabled.
 
 Do not open public issues containing secrets, exploit details, or private
 vulnerability information.

@@ -1,9 +1,8 @@
 # PSMFD mirror security baseline
 
-This document records the security baseline for the private-bootstrap
-`psmfd/pi` mirror. The mirror preserves upstream files for review and
-provenance. GitHub Actions remain disabled until runnable workflow policy is
-fully configured and verified.
+This document records the security baseline for the `psmfd/pi` mirror. The
+mirror preserves upstream files for review and provenance while limiting PSMFD
+changes to documented overlay paths.
 
 ## Workflow execution surface
 
@@ -29,13 +28,19 @@ runnable workflow must appear in `.psmfd/workflow-allowlist.yml`.
 
 ## Current baseline
 
-- Repository visibility: private during bootstrap.
-- GitHub Actions: disabled at the repository level.
+- Repository visibility: private during readiness; public only after the
+  public-flip checklist is complete.
+- GitHub Actions: enabled with selected-actions restrictions.
 - Default `GITHUB_TOKEN` permissions: read-only.
+- Root README policy: `README.md` is an approved PSMFD public landing-page
+  overlay for this detached mirror.
 - Active workflow directory policy: `.github/workflows/` is reserved for PSMFD
   workflows whose filenames start with `psmfd-`.
+- Active workflow set: `.github/workflows/psmfd-zero-divergence.yml`.
 - Upstream workflow reference directory:
   `.github/workflows-upstream-reference/`.
+- Branch protection must require the `enforce overlay path allowlist` status
+  check before public release.
 
 ## Dependabot scope
 
@@ -76,11 +81,23 @@ Before making `psmfd/pi` public:
 - [ ] Confirm runnable workflows use least-privilege permissions and do not
   require long-lived repository secrets.
 - [ ] Confirm public README/provenance docs link to this security baseline.
-- [ ] Confirm branch protection requires the intended PSMFD checks only.
+- [ ] Confirm branch protection requires the intended PSMFD checks only,
+  including `enforce overlay path allowlist`.
 - [ ] Confirm repository Actions settings allow only the intended execution
   surface.
+- [ ] Confirm fork pull request workflow settings require appropriate approval
+  for first-time contributors.
+- [ ] Enable GitHub private vulnerability reporting or publish an equivalent
+  private security-reporting contact before accepting public reports.
 
 ## Bootstrap validation
 
 This section records that the zero-divergence guard was validated with an
 allowed-path bootstrap PR while the repository remained private.
+
+## Trusted upstream-sync bypass
+
+The zero-divergence guard skips path enforcement only for same-repository PRs
+from `sync/upstream-*` branches authored by the configured trusted sync actor.
+That bypass is limited to upstream synchronization and must not be used to carry
+behavioral source patches in the mirror.

@@ -4,6 +4,7 @@
 # Keep this text allowlist synchronized with psmfd-zero-divergence.yml.
 
 PROVENANCE.md
+README.md
 README.psmfd.md
 SECURITY.md
 NOTICE.psmfd.md

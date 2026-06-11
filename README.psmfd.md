@@ -3,6 +3,9 @@
 This repository is a detached mirror of <https://github.com/earendil-works/pi>
 used to build, scan, attest, and publish PSMFD-owned pi runtime releases.
 
+The root [`README.md`](README.md) is the concise public landing page for GitHub
+visitors. This file carries the detailed PSMFD mirror notes.
+
 ## Relationship to upstream
 
 - This is **not** a GitHub fork network fork.
