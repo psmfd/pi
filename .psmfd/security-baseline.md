@@ -43,6 +43,23 @@ Dependabot is limited to the `github-actions` ecosystem for this mirror until a
 separate dependency policy is approved. Do not enable package-manager update
 PRs for upstream-owned lockfiles without an explicit upstream-sync decision.
 
+## Secret-scanning baseline
+
+Gitleaks is the canonical local secret scanner for the public-flip gate. This
+mirror carries a root `.gitleaks.toml` because it preserves upstream history and
+must distinguish accepted upstream-public scanner noise from PSMFD-owned
+secrets.
+
+The current allowlist is scoped by commit and path only. It covers:
+
+- an upstream Anthropic OAuth beta protocol header that is not a credential;
+- upstream Google OAuth native-app client credentials accepted as
+  upstream-public runtime identifiers, not PSMFD-owned secrets;
+- upstream Claude model identifier mappings that are not credentials.
+
+Do not add broad regex-only or rule-wide allowlists. New findings must be
+triaged before public release or upstream sync.
+
 ## Pre-public checklist
 
 Before making `psmfd/pi` public:
