@@ -1,0 +1,7 @@
+# PSMFD-owned overlay and automation paths.
+/.github/ @TheSemicolon
+/.psmfd/ @TheSemicolon
+/PROVENANCE.md @TheSemicolon
+/README.psmfd.md @TheSemicolon
+/SECURITY.md @TheSemicolon
+/NOTICE.psmfd.md @TheSemicolon
