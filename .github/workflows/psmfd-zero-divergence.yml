@@ -1,0 +1,102 @@
+---
+name: PSMFD zero-divergence guard
+
+'on':
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  pull-requests: read
+
+jobs:
+  overlay-path-guard:
+    name: enforce overlay path allowlist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check changed paths
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          TRUSTED_SYNC_ACTOR: TheSemicolon
+        run: |
+          set -euo pipefail
+
+          : "${GH_TOKEN:?}"
+          : "${GITHUB_REPOSITORY:?}"
+          : "${PR_NUMBER:?}"
+          : "${HEAD_REF:?}"
+          : "${HEAD_REPO:?}"
+          : "${PR_AUTHOR:?}"
+
+          if [[ "${HEAD_REF}" == sync/upstream-* ]] && \
+             [[ "${HEAD_REPO}" == "${GITHUB_REPOSITORY}" ]] && \
+             [[ "${PR_AUTHOR}" == "${TRUSTED_SYNC_ACTOR}" ]]; then
+            echo "Trusted upstream-sync PR; overlay-only path guard skipped."
+            exit 0
+          fi
+
+          gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" \
+            > files.json
+
+          python3 - <<'PY'
+          import fnmatch
+          import json
+          import sys
+
+          EXACT = {
+              "PROVENANCE.md",
+              "README.psmfd.md",
+              "SECURITY.md",
+              "NOTICE.psmfd.md",
+              ".github/CODEOWNERS",
+              ".github/dependabot.yml",
+          }
+          GLOBS = (
+              ".psmfd/**",
+              ".github/workflows/psmfd-*.yml",
+          )
+
+          def allowed(path: str) -> bool:
+              if path in EXACT:
+                  return True
+              return any(fnmatch.fnmatchcase(path, pat) for pat in GLOBS)
+
+          with open("files.json", encoding="utf-8") as handle:
+              data = json.load(handle)
+
+          records = []
+          if isinstance(data, list):
+              for page in data:
+                  if isinstance(page, list):
+                      records.extend(page)
+                  elif isinstance(page, dict):
+                      records.append(page)
+          elif isinstance(data, dict):
+              records.append(data)
+
+          violations = []
+          for item in records:
+              status = item.get("status", "unknown")
+              for key in ("filename", "previous_filename"):
+                  path = item.get(key)
+                  if path and not allowed(path):
+                      violations.append({
+                          "status": status,
+                          "field": key,
+                          "path": path,
+                      })
+
+          if violations:
+              print("Non-overlay paths changed; zero-divergence guard failed.")
+              print(json.dumps(violations, indent=2, sort_keys=True))
+              sys.exit(1)
+
+          print(f"Overlay path guard passed for {len(records)} changed files.")
+          PY
