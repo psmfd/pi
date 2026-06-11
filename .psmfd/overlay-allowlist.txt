@@ -1,5 +1,6 @@
-# Paths PSMFD may modify in this detached mirror without violating zero-divergence.
-# Any change outside these paths is presumed to be upstream-owned and must be reviewed as a potential divergence violation.
+# Paths PSMFD may modify in this detached mirror without violating
+# zero-divergence. Any change outside these paths is presumed to be
+# upstream-owned and must be reviewed as a potential divergence violation.
 
 PROVENANCE.md
 README.psmfd.md
