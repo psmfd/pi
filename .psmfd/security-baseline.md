@@ -62,3 +62,8 @@ Before making `psmfd/pi` public:
 - [ ] Confirm branch protection requires the intended PSMFD checks only.
 - [ ] Confirm repository Actions settings allow only the intended execution
   surface.
+
+## Bootstrap validation
+
+This section records that the zero-divergence guard was validated with an
+allowed-path bootstrap PR while the repository remained private.
