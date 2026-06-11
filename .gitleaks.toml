@@ -1,0 +1,35 @@
+title = "PSMFD pi mirror Gitleaks configuration"
+
+# This detached mirror preserves upstream history. The entries below are scoped
+# to reviewed upstream-public commits and paths so the public-flip gate can
+# distinguish accepted upstream scanner noise from PSMFD-owned secrets.
+
+[[allowlists]]
+description = "Upstream Anthropic OAuth beta header; protocol feature header, not a credential."
+condition = "AND"
+commits = ["f5e6bcac1b74dd66567310b51a2134ecda7d6676"]
+paths = ['''anthropic-oauth-test\.sh''']
+
+[[allowlists]]
+description = "Upstream Google OAuth native-app client credential in Antigravity OAuth flow; accepted upstream-public runtime identifier."
+condition = "AND"
+commits = ["c359023c3f90f859fc446fa56e4e8668ddc6e7f1"]
+paths = ['''packages/ai/src/utils/oauth/google-antigravity\.ts''']
+
+[[allowlists]]
+description = "Upstream Google OAuth native-app client credential in planning note; accepted upstream-public runtime identifier."
+condition = "AND"
+commits = ["36e17933d57ca7079b86d75b73a9721b229c853c"]
+paths = ['''plan\.md''']
+
+[[allowlists]]
+description = "Upstream Google OAuth native-app client credential in Google Cloud OAuth flow; accepted upstream-public runtime identifier."
+condition = "AND"
+commits = ["b6fe07b618b9ccb082d9ea0dd6dbe5661c66ec64"]
+paths = ['''packages/coding-agent/src/core/oauth/google-cloud\.ts''']
+
+[[allowlists]]
+description = "Upstream Claude model identifier mapping; model names, not credentials."
+condition = "AND"
+commits = ["f9d688d57766f3c4d72b592cc25ea3881bebf46d"]
+paths = ['''packages/ai/scripts/generate-models\.ts''']

@@ -58,6 +58,7 @@ jobs:
               "README.psmfd.md",
               "SECURITY.md",
               "NOTICE.psmfd.md",
+              ".gitleaks.toml",
               ".github/CODEOWNERS",
               ".github/dependabot.yml",
           }
