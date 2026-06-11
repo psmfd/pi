@@ -63,7 +63,9 @@ jobs:
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
-              re.compile(r"^\.github/workflows/psmfd-[^/]+\.yml$"),
+              re.compile(r"^\.github/workflows/psmfd-[^/]+\.ya?ml$"),
+              re.compile(r"^\.github/workflows-upstream-reference/.+\.ya?ml$"),
+              re.compile(r"^\.github/workflows-upstream-reference/README\.md$"),
           )
 
           def allowed(path: str) -> bool:
