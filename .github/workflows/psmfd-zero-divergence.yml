@@ -23,6 +23,7 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
           TRUSTED_SYNC_ACTOR: TheSemicolon
         run: |
           set -euo pipefail
@@ -33,6 +34,7 @@ jobs:
           : "${HEAD_REF:?}"
           : "${HEAD_REPO:?}"
           : "${PR_AUTHOR:?}"
+          : "${CHANGED_FILES:?}"
 
           if [[ "${HEAD_REF}" == sync/upstream-* ]] && \
              [[ "${HEAD_REPO}" == "${GITHUB_REPOSITORY}" ]] && \
@@ -46,8 +48,9 @@ jobs:
             > files.json
 
           python3 - <<'PY'
-          import fnmatch
           import json
+          import os
+          import re
           import sys
 
           EXACT = {
@@ -58,28 +61,50 @@ jobs:
               ".github/CODEOWNERS",
               ".github/dependabot.yml",
           }
-          GLOBS = (
-              ".psmfd/**",
-              ".github/workflows/psmfd-*.yml",
+          REGEXES = (
+              re.compile(r"^\.psmfd/.+"),
+              re.compile(r"^\.github/workflows/psmfd-[^/]+\.yml$"),
           )
 
           def allowed(path: str) -> bool:
               if path in EXACT:
                   return True
-              return any(fnmatch.fnmatchcase(path, pat) for pat in GLOBS)
+              return any(regex.match(path) for regex in REGEXES)
+
+          try:
+              expected_count = int(os.environ["CHANGED_FILES"])
+          except (KeyError, ValueError) as exc:
+              raise SystemExit(f"invalid CHANGED_FILES value: {exc}")
+
+          if expected_count > 3000:
+              raise SystemExit(
+                  "PR changes more than 3000 files; GitHub's PR-files API "
+                  "cannot provide a complete list, so failing closed."
+              )
 
           with open("files.json", encoding="utf-8") as handle:
               data = json.load(handle)
 
+          if not isinstance(data, list):
+              raise SystemExit("unexpected PR files payload shape")
+
           records = []
-          if isinstance(data, list):
-              for page in data:
-                  if isinstance(page, list):
-                      records.extend(page)
-                  elif isinstance(page, dict):
-                      records.append(page)
-          elif isinstance(data, dict):
-              records.append(data)
+          for page in data:
+              if not isinstance(page, list):
+                  raise SystemExit("unexpected PR files page shape")
+              for item in page:
+                  if not isinstance(item, dict):
+                      raise SystemExit("unexpected PR file record shape")
+                  filename = item.get("filename")
+                  if not isinstance(filename, str) or not filename:
+                      raise SystemExit("PR file record missing filename")
+                  records.append(item)
+
+          if len(records) != expected_count:
+              raise SystemExit(
+                  f"PR files payload incomplete: expected {expected_count}, "
+                  f"received {len(records)}. Failing closed."
+              )
 
           violations = []
           for item in records:
