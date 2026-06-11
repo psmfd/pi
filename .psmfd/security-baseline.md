@@ -1,8 +1,9 @@
 # PSMFD mirror security baseline
 
-This document records the security baseline for the private `psmfd/pi` mirror.
-The mirror preserves upstream files for review and provenance. GitHub Actions
-remain disabled until runnable workflow policy is fully configured and verified.
+This document records the security baseline for the private-bootstrap
+`psmfd/pi` mirror. The mirror preserves upstream files for review and
+provenance. GitHub Actions remain disabled until runnable workflow policy is
+fully configured and verified.
 
 ## Workflow execution surface
 
@@ -23,9 +24,8 @@ Workflow classifications:
 | PSMFD-adopted | Yes, after review | Accepted without material changes after review. |
 | Upstream-reference | No | Preserved only for provenance or migration context. |
 
-Before public release, every workflow file must be classified and any runnable
-workflow must appear in `.psmfd/workflow-allowlist.yml` or an equivalent approval
-record.
+Before public release, every active workflow file must be classified and every
+runnable workflow must appear in `.psmfd/workflow-allowlist.yml`.
 
 ## Current baseline
 
@@ -53,7 +53,7 @@ Before making `psmfd/pi` public:
   explicitly PSMFD-adopted.
 - [ ] Confirm upstream-reference workflows are unable to run in this repository.
 - [ ] Confirm every runnable workflow appears in
-  `.psmfd/workflow-allowlist.yml` or an equivalent approval record.
+  `.psmfd/workflow-allowlist.yml`.
 - [ ] Confirm no reference-only workflow is required by branch protection,
   release automation, or repository rules.
 - [ ] Confirm runnable workflows use least-privilege permissions and do not

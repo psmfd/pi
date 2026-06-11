@@ -1,7 +1,6 @@
 # PSMFD mirror provenance
 
-This repository is a detached public mirror of the upstream pi source
-repository:
+This repository is a detached PSMFD mirror of the upstream pi source repository:
 
 - Upstream: <https://github.com/earendil-works/pi>
 - Mirror owner: PSMFD
@@ -27,7 +26,9 @@ to approved overlay paths. If an upstream sync requires modifying
 upstream-owned source/build files, the sync must stop and be escalated before
 merge.
 
-Approved overlay paths are listed in `.psmfd/overlay-allowlist.txt`.
+Approved overlay paths are listed in `.psmfd/overlay-allowlist.txt`. The active
+zero-divergence guard also enforces these paths; updates to the text allowlist
+and guard implementation must land together.
 
 ## Upstream automation provenance
 
@@ -36,7 +37,8 @@ only. Retention does not approve execution.
 
 Upstream workflows are reference-only unless PSMFD explicitly classifies them as
 adapted or adopted. Any workflow that runs in this repository must be reviewed
-against the PSMFD security baseline and recorded in the approved workflow list.
+against [the PSMFD security baseline](.psmfd/security-baseline.md) and recorded
+in [the workflow allowlist](.psmfd/workflow-allowlist.yml).
 
 ## Release artifacts
 
