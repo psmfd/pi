@@ -17,7 +17,7 @@ enabled or run.
 Workflow classifications:
 
 | Classification | May run? | Meaning |
-|---|---:|---|
+| --- | ---: | --- |
 | PSMFD-developed | Yes | Created by PSMFD for this mirror. |
 | PSMFD-adapted | Yes, after review | Derived from another source and changed for this mirror. |
 | PSMFD-adopted | Yes, after review | Accepted without material changes after review. |
@@ -36,7 +36,10 @@ runnable workflow must appear in `.psmfd/workflow-allowlist.yml`.
   overlay for this detached mirror.
 - Active workflow directory policy: `.github/workflows/` is reserved for PSMFD
   workflows whose filenames start with `psmfd-`.
-- Active workflow set: `.github/workflows/psmfd-zero-divergence.yml`.
+- Active workflow set: `.github/workflows/psmfd-zero-divergence.yml` and
+  `.github/workflows/psmfd-release.yml` (build-and-attest releases per
+  ADR-0038; `workflow_dispatch` only so the workflow body always loads from
+  the protected default branch; recorded in the workflow allowlist).
 - Upstream workflow reference directory:
   `.github/workflows-upstream-reference/`.
 - Branch protection must require the `enforce overlay path allowlist` status

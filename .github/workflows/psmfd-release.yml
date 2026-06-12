@@ -1,0 +1,262 @@
+# psmfd-release.yml — PSMFD build-and-attest release workflow (PSMFD-developed).
+#
+# Builds pi release artifacts FROM THE MIRRORED SOURCE at an existing
+# vX.Y.Z-psmfd.N tag and attests the newly built bytes, per ADR-0038
+# (psmfd/pi_config): PSMFD never re-attests upstream-built artifacts.
+#
+# Trigger is workflow_dispatch (not a tag trigger) so the workflow BODY is
+# always loaded from the protected default branch — a release tag cannot
+# introduce its own unreviewed workflow code. The preflight job verifies the
+# tag exists, matches the PSMFD release form, and points into main's history.
+#
+# Build hermeticity (Phase 0 findings, pi_config#356):
+#   - npm ci --ignore-scripts only; no lifecycle scripts.
+#   - Packages are built with tsgo directly; the packages/ai
+#     generate-models step (live network fetches) is skipped — the
+#     generated model files are committed source.
+#   - Bun is pinned (upstream pins it only in its own workflow file).
+#   - Known, accepted network inputs: npm registry (lockfile-resolved),
+#     bun.sh cross-target runtimes fetched by `bun build --compile`,
+#     version-pinned @mariozechner/clipboard platform bindings.
+#
+# Fail-closed: every job step that produces, checks, attests, publishes, or
+# verifies bytes aborts the release on failure. The GitHub release is created
+# as a DRAFT and is only undrafted after checksums and attestations verify.
+#
+# Consumers verify with:
+#   gh attestation verify <artifact> --repo psmfd/pi \
+#     --signer-workflow psmfd/pi/.github/workflows/psmfd-release.yml
+
+---
+name: psmfd-release
+
+'on':
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing PSMFD release tag (vX.Y.Z-psmfd.N)"
+        required: true
+        type: string
+
+permissions: {}
+
+env:
+  BUN_VERSION: "1.3.10"
+
+jobs:
+  preflight:
+    name: validate release tag
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      tag_sha: ${{ steps.check.outputs.tag_sha }}
+    steps:
+      - name: Check out default branch (full history)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag format, existence, and main ancestry
+        id: check
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          PAT='^v[0-9]+\.[0-9]+\.[0-9]+-psmfd\.[0-9]+$'
+          if ! printf '%s' "$TAG" | grep -Eq "$PAT"; then
+            echo "ERROR [tag-format] '$TAG' does not match vX.Y.Z-psmfd.N" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          TAG_SHA="$(git rev-parse "${TAG}^{commit}")"
+          MAIN_REF="refs/remotes/origin/main"
+          if ! git merge-base --is-ancestor "$TAG_SHA" "$MAIN_REF"; then
+            echo "ERROR [tag-ancestry] $TAG ($TAG_SHA) not on main" >&2
+            exit 1
+          fi
+          echo "OK    [tag] $TAG -> $TAG_SHA (ancestor of main)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag_sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build artifacts from mirrored source
+    needs: preflight
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      # Job-level so it is fixed before any step runs code from the tag's
+      # checkout; a malicious GITHUB_ENV write cannot override a job-level env.
+      TAG: ${{ needs.preflight.outputs.tag }}
+    steps:
+      - name: Check out the release tag commit
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          ref: ${{ needs.preflight.outputs.tag_sha }}
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        with:
+          node-version: "22"
+
+      - name: Set up Bun (pinned)
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies (lockfile, no lifecycle scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Build packages (hermetic — skip network model generation)
+        run: |
+          set -euo pipefail
+          (cd packages/tui && npm run build)
+          (cd packages/ai && npx tsgo -p tsconfig.build.json)
+          (cd packages/agent && npm run build)
+          (cd packages/coding-agent && npm run build)
+
+      - name: Compile platform binaries and upstream-shaped archives
+        run: ./scripts/build-binaries.sh --skip-install --skip-build
+
+      - name: Repackage with PSMFD naming, LICENSE, and NOTICE
+        run: |
+          set -euo pipefail
+          OUT="packages/coding-agent/binaries"
+          DEST="psmfd-release-assets"
+          mkdir -p "$DEST"
+          for platform in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
+            cp LICENSE NOTICE.psmfd.md "$OUT/$platform/"
+            mv "$OUT/$platform" "$OUT/pi"
+            tar -C "$OUT" -czf "$DEST/pi-$platform-$TAG.tar.gz" pi
+            mv "$OUT/pi" "$OUT/$platform"
+          done
+          for platform in windows-x64 windows-arm64; do
+            cp LICENSE NOTICE.psmfd.md "$OUT/$platform/"
+            ZIP="$(pwd)/$DEST/pi-$platform-$TAG.zip"
+            (cd "$OUT/$platform" && zip -qr "$ZIP" .)
+          done
+          ls -l "$DEST"
+
+      - name: Generate SBOM (CycloneDX)
+        run: >
+          npm sbom --sbom-format cyclonedx --omit dev
+          > "psmfd-release-assets/pi-sbom-$TAG.cdx.json"
+
+      - name: Generate SHA256SUMS over the exact published bytes
+        run: |
+          set -euo pipefail
+          cd psmfd-release-assets
+          sha256sum pi-* > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: psmfd-release-assets
+          path: psmfd-release-assets/
+          if-no-files-found: error
+
+  attest:
+    name: attest PSMFD-built artifacts
+    needs: [preflight, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download built assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: psmfd-release-assets
+          path: psmfd-release-assets
+
+      - name: Verify checksums before attesting
+        run: |
+          set -euo pipefail
+          cd psmfd-release-assets
+          sha256sum -c SHA256SUMS
+
+      - name: Attest build provenance (keyless OIDC)
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32  # v4.1.0
+        with:
+          subject-path: |
+            psmfd-release-assets/pi-*
+            psmfd-release-assets/SHA256SUMS
+
+  publish:
+    name: draft release, verify, publish
+    needs: [preflight, build, attest]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download built assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: psmfd-release-assets
+          path: psmfd-release-assets
+
+      - name: Re-verify checksums before publishing
+        run: |
+          set -euo pipefail
+          cd psmfd-release-assets
+          sha256sum -c SHA256SUMS
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          TAG_SHA: ${{ needs.preflight.outputs.tag_sha }}
+        run: |
+          set -euo pipefail
+          BASE="${TAG%-psmfd.*}"
+          cat > notes.md <<EOF
+          PSMFD-built pi release artifacts, rebuilt from the mirrored source at
+          \`$TAG\` (commit \`$TAG_SHA\`, upstream base \`$BASE\`) per the
+          zero-divergence policy and ADR-0038 build-and-attest trust boundary.
+          These are PSMFD-built bytes, not upstream release artifacts.
+
+          Verify any asset with:
+
+          \`\`\`sh
+          gh attestation verify <asset> --repo psmfd/pi \\
+            --signer-workflow psmfd/pi/.github/workflows/psmfd-release.yml
+          sha256sum -c SHA256SUMS --ignore-missing
+          \`\`\`
+          EOF
+          gh release create "$TAG" \
+            --draft \
+            --verify-tag \
+            --title "pi $TAG (PSMFD build)" \
+            --notes-file notes.md \
+            psmfd-release-assets/pi-* psmfd-release-assets/SHA256SUMS
+
+      - name: Verify the published draft bytes (fail closed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+        # gh release download on a DRAFT requires a token with contents:write
+        # (draft assets are invisible to read-only tokens) — this job has it.
+        run: |
+          set -euo pipefail
+          SIGNER="$GITHUB_REPOSITORY/.github/workflows/psmfd-release.yml"
+          mkdir verify-stage
+          gh release download "$TAG" --dir verify-stage
+          cd verify-stage
+          sha256sum -c SHA256SUMS
+          for f in pi-* SHA256SUMS; do
+            gh attestation verify "$f" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$SIGNER"
+            echo "OK    [attest-verify] $f"
+          done
+
+      - name: Publish (undraft) release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+        run: gh release edit "$TAG" --draft=false
