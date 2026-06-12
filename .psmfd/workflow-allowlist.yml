@@ -15,3 +15,27 @@ workflows:
       release_behavior_reviewed: true
       notes: >-
         Uses no checkout or third-party actions and only pull-requests:read.
+  - path: .github/workflows/psmfd-release.yml
+    classification: psmfd-developed
+    purpose: >-
+      Build pi release artifacts from the mirrored source at an existing
+      vX.Y.Z-psmfd.N tag, attest the newly built bytes (keyless OIDC), and
+      publish a GitHub release after fail-closed checksum and attestation
+      verification (ADR-0038, pi_config#361).
+    approved_by: PSMFD
+    approval_reference: "PR #8"
+    review:
+      triggers_reviewed: true
+      permissions_reviewed: true
+      secrets_reviewed: true
+      third_party_actions_reviewed: true
+      release_behavior_reviewed: true
+      notes: >-
+        workflow_dispatch only, so the workflow body always loads from the
+        protected default branch and a release tag cannot carry its own
+        workflow code. Default permissions none; per-job least privilege
+        (id-token/attestations write confined to the attest job; contents
+        write confined to the publish job). No repository secrets; OIDC
+        keyless signing only. All third-party actions SHA-pinned. Accepted
+        network inputs at build time: npm registry via lockfile, bun.sh
+        cross-target runtimes, version-pinned clipboard bindings.
