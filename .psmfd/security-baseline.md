@@ -104,3 +104,33 @@ The zero-divergence guard skips path enforcement only for same-repository PRs
 from `sync/upstream-*` branches authored by the configured trusted sync actor.
 That bypass is limited to upstream synchronization and must not be used to carry
 behavioral source patches in the mirror.
+
+## Security-patch divergence
+
+Distinct from the sync bypass above, the mirror may carry a temporary,
+manifest-tracked patch to upstream-owned source for a security finding that has
+no upstream fix or fix in flight (ADR-0041, `pi_config`). This is the only
+sanctioned reason to modify upstream-owned files outside a sync.
+
+- Eligibility: a CodeQL/code-scanning alert or a CVE/advisory (not a routine
+  version refresh), with no merged upstream commit and no open upstream PR
+  likely to merge — verified and recorded at patch time.
+- Mechanism: the patched paths are listed in
+  [`.psmfd/patches/manifest.yml`](patches/manifest.yml) and added in lockstep to
+  `.psmfd/overlay-allowlist.txt` and the `SECURITY_PATCH_PATHS` set in
+  `.github/workflows/psmfd-zero-divergence.yml`. The guard's trust model is
+  unchanged — only its allowlist data widens — so every security-patch PR still
+  requires maintainer review before merge. Because a same-repository PR can edit
+  the guard workflow it runs under, maintainer review (not the guard alone) is
+  the binding control that a path added to `SECURITY_PATCH_PATHS` corresponds to
+  a genuine manifest-registered finding.
+- Dependency bumps: a lockfile/manifest bump that resolves a CVE is treated as
+  the same class as a source patch (the attested bytes depend on it) and follows
+  the same manifest + allowlist discipline. This is the sanctioned narrowing of
+  the "Dependabot scope" limitation above for security-relevant bumps; routine
+  refreshes still wait for an upstream sync. The `min-release-age` supply-chain
+  control in `.npmrc` is not overridden to apply a bump — a patched version too
+  new to install waits for the age window.
+- Retirement: when upstream ships its own fix, the patch is dropped on the
+  `sync/upstream-*` import that carries it, the manifest entry is marked
+  `retired`, and the path is removed from the allowlist and guard.
