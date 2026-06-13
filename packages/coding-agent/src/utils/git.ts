@@ -101,6 +101,31 @@ function hasUnsafeGitInstallPart(value: string, allowSlash: boolean): boolean {
 	return false;
 }
 
+function hasUnsafeGitRef(ref: string): boolean {
+	const decoded = decodeForValidation(ref);
+	if (decoded === null) {
+		return true;
+	}
+	for (const candidate of [ref, decoded]) {
+		// A ref that begins with "-" can be parsed by git as a command-line
+		// option (e.g. "--upload-pack=...", "-oProxyCommand=...") at the
+		// fetch/checkout call sites, turning attacker-controlled ref input
+		// into argument injection. Git's own check-ref-format also forbids a
+		// leading "-", control characters, and whitespace, so rejecting them
+		// here loses no valid ref.
+		if (candidate.startsWith("-")) {
+			return true;
+		}
+		for (const ch of candidate) {
+			const code = ch.codePointAt(0) ?? 0;
+			if (code <= 0x20 || code === 0x7f) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 function buildGitSource(args: { repo: string; host: string; path: string; ref?: string }): GitSource | null {
 	if (args.path.startsWith("/")) {
 		return null;
@@ -110,6 +135,9 @@ function buildGitSource(args: { repo: string; host: string; path: string; ref?: 
 		return null;
 	}
 	if (hasUnsafeGitInstallPart(args.host, false) || hasUnsafeGitInstallPart(normalizedPath, true)) {
+		return null;
+	}
+	if (args.ref !== undefined && hasUnsafeGitRef(args.ref)) {
 		return null;
 	}
 
