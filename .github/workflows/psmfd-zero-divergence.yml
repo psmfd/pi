@@ -63,6 +63,29 @@ jobs:
               ".github/CODEOWNERS",
               ".github/dependabot.yml",
           }
+          # Security-patch exemptions (ADR-0041): upstream-owned paths that carry
+          # a manifest-tracked PSMFD security patch applied because no upstream
+          # fix exists/is in flight. TEMPORARY — each path is registered in
+          # .psmfd/patches/manifest.yml and REMOVED here when the patch is
+          # retired after upstream ships its own fix. Keep in lockstep with
+          # .psmfd/overlay-allowlist.txt and the manifest. This widens the
+          # allowlist data only; it does not change the guard's trust model, and
+          # every such change still requires maintainer review before merge.
+          SECURITY_PATCH_PATHS = {
+              # psmfd-patch-001 — git-ref flag injection (CodeQL 19/22)
+              "packages/coding-agent/src/utils/git.ts",
+              "packages/coding-agent/src/core/package-manager.ts",
+              "packages/coding-agent/test/git-ssh-url.test.ts",
+              "packages/coding-agent/test/git-update.test.ts",
+              "packages/coding-agent/test/package-manager.test.ts",
+              # psmfd-patch-002 — vitest CVE-2026-47429
+              "packages/agent/package.json",
+              "packages/ai/package.json",
+              "packages/coding-agent/package.json",
+              "package-lock.json",
+              # psmfd-patch-003 — shell-quote CVE-2026-9277 (sandbox lockfile)
+              "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
+          }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
               re.compile(r"^\.github/workflows/psmfd-[^/]+\.ya?ml$"),
@@ -71,7 +94,7 @@ jobs:
           )
 
           def allowed(path: str) -> bool:
-              if path in EXACT:
+              if path in EXACT or path in SECURITY_PATCH_PATHS:
                   return True
               return any(regex.match(path) for regex in REGEXES)
 

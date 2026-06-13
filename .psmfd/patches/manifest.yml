@@ -1,0 +1,130 @@
+# PSMFD security-patch manifest
+#
+# Records deliberate, temporary divergences from upstream-owned source carried
+# by this mirror under the conditional security-patch divergence policy
+# (ADR-0041, pi_config). A patch is listed here ONLY when no upstream fix
+# exists or is in flight for a security finding (CodeQL/code-scanning alert or
+# CVE/advisory). Each entry's `patched_paths` must be kept in lockstep with the
+# allowlist in `.psmfd/overlay-allowlist.txt` and the `SECURITY_PATCH_PATHS`
+# set in `.github/workflows/psmfd-zero-divergence.yml`.
+#
+# Lifecycle: active -> (upstream ships its own fix) -> retired. Retirement
+# happens on the `sync/upstream-*` import that carries the upstream fix:
+# rebase-drop the PSMFD-Patch commit, set status: retired + upstream_fixed_in +
+# psmfd_retire_commit, and remove the path(s) from the allowlist and guard.
+#
+# Fields:
+#   id                 short stable patch identifier (also the PSMFD-Patch: trailer value)
+#   status             active | pending | retired
+#   upstream_base      upstream version the patch is applied on top of
+#   advisory           CVE / GHSA / CodeQL rule + alert reference
+#   severity           upstream-reported severity
+#   patched_paths      upstream-owned files this patch modifies (lockstep with allowlist + guard)
+#   evidence           how the fix is proven (regression test / resolved version)
+#   upstream_issue     upstream issue URL once filed (null until then)
+#   upstream_pr        upstream PR URL once opened (null until then)
+#   upstream_fixed_in  upstream version that ships the fix; setting this triggers retirement
+#   psmfd_commit       commit that introduces the patch on mirror main (filled on merge)
+#   psmfd_retire_commit commit that retires the patch (filled on retirement)
+
+patches:
+  - id: psmfd-patch-001
+    status: active
+    upstream_base: v0.79.2
+    advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
+    severity: high
+    description: >-
+      A git ref parsed from a package URL (source.ref) flowed unvalidated into
+      `git fetch origin <ref>` and `git checkout <ref>`. A ref beginning with
+      "-" (e.g. "--upload-pack=...", "-oProxyCommand=...") would be parsed by
+      git as a command-line option, turning ref input into argument injection.
+      Fix: reject unsafe refs at parse time in buildGitSource (git.ts) and pass
+      `--end-of-options` before the ref at the fetch/checkout sinks
+      (package-manager.ts).
+    patched_paths:
+      - packages/coding-agent/src/utils/git.ts
+      - packages/coding-agent/src/core/package-manager.ts
+      - packages/coding-agent/test/git-ssh-url.test.ts
+      - packages/coding-agent/test/git-update.test.ts
+      - packages/coding-agent/test/package-manager.test.ts
+    evidence: >-
+      Failing-then-passing regression tests in git-ssh-url.test.ts assert
+      parseGitUrl rejects option-like refs; git-update.test.ts asserts the
+      hardened real-git fetch args. Pre-fix the injection refs parsed through;
+      post-fix they are rejected. `npm run check` clean.
+    upstream_issue: "https://github.com/psmfd/pi/issues/7"
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-002
+    status: active
+    upstream_base: v0.79.2
+    advisory: "CVE-2026-47429 / GHSA-5xrq-8626-4rwp"
+    severity: critical
+    description: >-
+      vitest < 3.2.6 allows arbitrary file read / code execution when the
+      Vitest UI server is exposed to the network or run on Windows. Upstream
+      bump PR (earendil-works/pi#5451) was closed unmerged; upstream HEAD still
+      pins 3.2.4. Fix: bump vitest (and @vitest/coverage-v8) to 3.2.6.
+    patched_paths:
+      - packages/agent/package.json
+      - packages/ai/package.json
+      - packages/coding-agent/package.json
+      - package-lock.json
+    evidence: >-
+      vitest resolves to 3.2.6 in all three workspaces; `npm run check` and
+      `./test.sh` pass under 3.2.6 (dev-only dependency).
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-003
+    status: active
+    upstream_base: v0.79.2
+    advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p"
+    severity: critical
+    description: >-
+      shell-quote <= 1.8.3 fails to escape newlines in object-token `.op`
+      values, enabling command injection. Present as a transitive runtime
+      dependency of the sandbox example extension via
+      @anthropic-ai/sandbox-runtime. Upstream fixed only the root lockfile
+      (commit a7f9fe68, picked up by the v0.79.2 sync); the sandbox example
+      lockfile still carried 1.8.3. Fix: pin shell-quote 1.8.4 in the sandbox
+      lockfile.
+    patched_paths:
+      - packages/coding-agent/examples/extensions/sandbox/package-lock.json
+    evidence: >-
+      shell-quote resolves to 1.8.4 (verified registry integrity) and satisfies
+      the parent ^1.8.3 range; npm re-resolution keeps 1.8.4.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-004
+    status: pending
+    upstream_base: v0.79.2
+    advisory: "GHSA-gv7w-rqvm-qjhr (high), GHSA-g7r4-m6w7-qqqr (low)"
+    severity: high
+    description: >-
+      esbuild >= 0.17.0 < 0.28.1 (Deno-module RCE via attacker-controlled
+      NPM_CONFIG_REGISTRY; Windows dev-server path traversal). Dev-only build
+      tool; advisories are unlikely to apply to pi's usage. NOT YET APPLIED:
+      esbuild 0.28.1 was published 2026-06-11 and is blocked by the .npmrc
+      min-release-age=2 supply-chain control until ~2026-06-13. When applied,
+      add `package.json` to the allowlist and guard alongside `package-lock.json`.
+    patched_paths: []
+    planned_patched_paths:
+      - package.json
+      - package-lock.json
+    evidence: null
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

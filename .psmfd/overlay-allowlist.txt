@@ -17,3 +17,22 @@ NOTICE.psmfd.md
 .github/workflows-upstream-reference/*.yml
 .github/workflows-upstream-reference/*.yaml
 .github/workflows-upstream-reference/README.md
+
+# Security-patch exemptions (ADR-0041) — upstream-owned paths carrying a
+# manifest-tracked PSMFD security patch (no upstream fix exists/in flight).
+# TEMPORARY: registered in .psmfd/patches/manifest.yml; removed from here and
+# from SECURITY_PATCH_PATHS in psmfd-zero-divergence.yml when the patch retires
+# after upstream ships its own fix. Keep all three surfaces in lockstep.
+# psmfd-patch-001 — git-ref flag injection (CodeQL 19/22)
+packages/coding-agent/src/utils/git.ts
+packages/coding-agent/src/core/package-manager.ts
+packages/coding-agent/test/git-ssh-url.test.ts
+packages/coding-agent/test/git-update.test.ts
+packages/coding-agent/test/package-manager.test.ts
+# psmfd-patch-002 — vitest CVE-2026-47429
+packages/agent/package.json
+packages/ai/package.json
+packages/coding-agent/package.json
+package-lock.json
+# psmfd-patch-003 — shell-quote CVE-2026-9277 (sandbox lockfile)
+packages/coding-agent/examples/extensions/sandbox/package-lock.json

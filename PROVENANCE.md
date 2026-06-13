@@ -26,14 +26,37 @@ copied here as an overlay.
 
 ## Zero-divergence policy
 
-The mirror must not carry behavioral source patches. PSMFD changes are limited
-to approved overlay paths. If an upstream sync requires modifying
-upstream-owned source/build files, the sync must stop and be escalated before
-merge.
+The mirror does not carry behavioral source patches, with one narrow,
+audit-tracked exception: a **manifest-tracked security patch** (see below).
+Outside that exception, PSMFD changes are limited to approved overlay paths. If
+an upstream sync requires modifying upstream-owned source/build files, the sync
+must stop and be escalated before merge.
 
 Approved overlay paths are listed in `.psmfd/overlay-allowlist.txt`. The active
 zero-divergence guard also enforces these paths; updates to the text allowlist
 and guard implementation must land together.
+
+### Conditional security-patch divergence
+
+When a security finding (a CodeQL/code-scanning alert or a CVE/advisory) has no
+upstream fix and none in flight, PSMFD may carry a temporary patch to the
+affected upstream-owned files so the mirror's released artifacts are not left
+exposed. Such a patch is the deliberate, bounded exception to zero-divergence
+and is governed by ADR-0041 (`pi_config`):
+
+- Every patched upstream path is registered in
+  [`.psmfd/patches/manifest.yml`](.psmfd/patches/manifest.yml) and added to the
+  overlay allowlist and the guard's `SECURITY_PATCH_PATHS` set in lockstep.
+- Every patch commit carries a `PSMFD-Patch: <id>` trailer tying it to its
+  manifest entry, and the patch ships with evidence (a regression test for
+  source fixes, or the resolved version for dependency bumps).
+- The divergence is temporary: when upstream ships its own fix, the patch is
+  retired on the `sync/upstream-*` import that carries it (the manifest entry is
+  marked `retired` and the path is removed from the allowlist and guard),
+  dissolving the mirror back to zero divergence.
+
+PSMFD does not vouch for upstream source; a security patch hardens the mirror's
+build, it does not change PSMFD's provenance posture toward upstream commits.
 
 The guard intentionally skips path enforcement only for same-repository PRs from
 trusted `sync/upstream-*` branches authored by the configured trusted sync
