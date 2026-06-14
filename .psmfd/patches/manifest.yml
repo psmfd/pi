@@ -30,7 +30,7 @@
 patches:
   - id: psmfd-patch-001
     status: active
-    upstream_base: v0.79.2
+    upstream_base: v0.79.3
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
     description: >-
@@ -60,7 +60,7 @@ patches:
 
   - id: psmfd-patch-002
     status: active
-    upstream_base: v0.79.2
+    upstream_base: v0.79.3
     advisory: "CVE-2026-47429 / GHSA-5xrq-8626-4rwp"
     severity: critical
     description: >-
@@ -84,7 +84,7 @@ patches:
 
   - id: psmfd-patch-003
     status: active
-    upstream_base: v0.79.2
+    upstream_base: v0.79.3
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p"
     severity: critical
     description: >-
@@ -107,22 +107,22 @@ patches:
     psmfd_retire_commit: null
 
   - id: psmfd-patch-004
-    status: pending
-    upstream_base: v0.79.2
+    status: active
+    upstream_base: v0.79.3
     advisory: "GHSA-gv7w-rqvm-qjhr (high), GHSA-g7r4-m6w7-qqqr (low)"
     severity: high
     description: >-
       esbuild >= 0.17.0 < 0.28.1 (Deno-module RCE via attacker-controlled
       NPM_CONFIG_REGISTRY; Windows dev-server path traversal). Dev-only build
-      tool; advisories are unlikely to apply to pi's usage. NOT YET APPLIED:
-      esbuild 0.28.1 was published 2026-06-11 and is blocked by the .npmrc
-      min-release-age=2 supply-chain control until ~2026-06-13. When applied,
-      add `package.json` to the allowlist and guard alongside `package-lock.json`.
-    patched_paths: []
-    planned_patched_paths:
+      tool; advisories are unlikely to apply to pi's usage. Applied once the
+      .npmrc min-release-age=2 window cleared (0.28.1 published 2026-06-11).
+      Bump esbuild 0.28.0 -> 0.28.1.
+    patched_paths:
       - package.json
       - package-lock.json
-    evidence: null
+    evidence: >-
+      esbuild resolves to 0.28.1; npm run check + ./test.sh pass (dev/build-only
+      dependency).
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
