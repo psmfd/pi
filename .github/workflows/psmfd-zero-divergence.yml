@@ -85,6 +85,8 @@ jobs:
               "package-lock.json",
               # psmfd-patch-003 — shell-quote CVE-2026-9277 (sandbox lockfile)
               "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
+              # psmfd-patch-004 — esbuild GHSA-gv7w/GHSA-g7r4 (root package.json; lockfile already listed)
+              "package.json",
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
