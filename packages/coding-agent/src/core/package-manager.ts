@@ -1764,7 +1764,7 @@ export class DefaultPackageManager implements PackageManager {
 		const targetDir = this.getGitInstallPath(source, scope);
 		if (existsSync(targetDir)) {
 			if (source.ref) {
-				await this.ensureGitRef(targetDir, ["fetch", "origin", "--end-of-options", source.ref], "FETCH_HEAD");
+				await this.ensureGitRef(targetDir, ["fetch", "origin", source.ref], "FETCH_HEAD");
 				return;
 			}
 			const target = await this.getLocalGitUpdateTarget(targetDir);
@@ -1779,7 +1779,7 @@ export class DefaultPackageManager implements PackageManager {
 
 		await this.runCommand("git", ["clone", source.repo, targetDir]);
 		if (source.ref) {
-			await this.runCommand("git", ["checkout", "--end-of-options", source.ref], { cwd: targetDir });
+			await this.runCommand("git", ["checkout", source.ref], { cwd: targetDir });
 		}
 		const packageJsonPath = join(targetDir, "package.json");
 		if (existsSync(packageJsonPath)) {
@@ -1795,7 +1795,7 @@ export class DefaultPackageManager implements PackageManager {
 		}
 
 		if (source.ref) {
-			await this.ensureGitRef(targetDir, ["fetch", "origin", "--end-of-options", source.ref], "FETCH_HEAD");
+			await this.ensureGitRef(targetDir, ["fetch", "origin", source.ref], "FETCH_HEAD");
 			return;
 		}
 
