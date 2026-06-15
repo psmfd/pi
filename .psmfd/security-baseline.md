@@ -134,3 +134,35 @@ sanctioned reason to modify upstream-owned files outside a sync.
 - Retirement: when upstream ships its own fix, the patch is dropped on the
   `sync/upstream-*` import that carries it, the manifest entry is marked
   `retired`, and the path is removed from the allowlist and guard.
+
+## Upstream reporting gate
+
+Fixing a security finding in the mirror and reporting it upstream are separate
+decisions (ADR-0043). The mirror **always fixes** (above); whether the fix is
+**reported upstream** is decided afterward, gated on upstream's own published
+policy:
+
+- **`SECURITY.md` scope** (upstream `earendil-works/pi`) decides whether the
+  finding is an in-scope vulnerability. Upstream treats the local user and
+  user-writable files as inside Pi's trust boundary and puts out of scope:
+  installing untrusted packages/extensions, user-initiated local actions, local
+  code execution / sandboxing, and dependency reports unless the dependency is
+  "reachable through Pi". Read it live at determination time — it changes.
+- **`CONTRIBUTING.md` process** governs how anything is submitted: new
+  contributors are auto-closed, approval is a maintainer `lgtm`, no PR before
+  approval, issues must be human-authored, and agent-driven/high-volume
+  submissions are permanently blocked.
+
+Consequences for this mirror:
+
+- Report upstream only when the finding is in scope under `SECURITY.md`. In-scope
+  security issues use the private channel (`security@earendil.com` / GitHub
+  private advisory); a non-security hardening worth offering uses the
+  contribution path, not the security channel.
+- **Reporting is human-led** — the agent never files upstream issues, PRs, or
+  advisories (it may prepare materials only). This respects both the upstream
+  anti-automation policy and the maintainer's standing approval gate.
+- Record the determination per patch in `.psmfd/patches/manifest.yml`
+  (`reporting:` field). "Not reported" is a logged decision, not an omission.
+- The current patches (`psmfd-patch-001`..`004`) were all assessed **out of
+  upstream scope → not reported**; see their manifest entries.
