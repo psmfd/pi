@@ -19,6 +19,9 @@
 #   upstream_base      upstream version the patch is applied on top of
 #   advisory           CVE / GHSA / CodeQL rule + alert reference
 #   severity           upstream-reported severity
+#   reporting          upstream-reporting determination, gated on upstream's published
+#                      SECURITY.md scope + CONTRIBUTING.md process (ADR-0043). Fix is
+#                      always applied; reporting is decided after and recorded here.
 #   patched_paths      upstream-owned files this patch modifies (lockstep with allowlist + guard)
 #   evidence           how the fix is proven (regression test / resolved version)
 #   upstream_issue     upstream issue URL once filed (null until then)
@@ -33,6 +36,11 @@ patches:
     upstream_base: v0.79.3
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
+    reporting: >-
+      Not reported (ADR-0043). Out of upstream SECURITY.md scope: triggers on
+      installing a git package with a crafted ref ("installing untrusted
+      packages" + "user-initiated local action"). Offerable only as optional
+      defense-in-depth hardening via the contribution path; not pursued.
     description: >-
       A git ref parsed from a package URL (source.ref) flowed unvalidated into
       `git fetch origin <ref>` and `git checkout <ref>`. A ref beginning with
@@ -63,6 +71,10 @@ patches:
     upstream_base: v0.79.3
     advisory: "CVE-2026-47429 / GHSA-5xrq-8626-4rwp"
     severity: critical
+    reporting: >-
+      Not reported (ADR-0043). Out of upstream SECURITY.md scope: dev/test-only
+      dependency, not shipped or reachable through Pi. Upstream Dependabot owns
+      dependency bumps; retire on the upstream bump + sync.
     description: >-
       vitest < 3.2.6 allows arbitrary file read / code execution when the
       Vitest UI server is exposed to the network or run on Windows. Upstream
@@ -87,6 +99,10 @@ patches:
     upstream_base: v0.79.3
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p"
     severity: critical
+    reporting: >-
+      Not reported (ADR-0043). Out of upstream SECURITY.md scope: transitive
+      dependency of the sandbox example extension (extension behavior), not
+      reachable through core Pi. Retire on the upstream bump + sync.
     description: >-
       shell-quote <= 1.8.3 fails to escape newlines in object-token `.op`
       values, enabling command injection. Present as a transitive runtime
@@ -111,6 +127,9 @@ patches:
     upstream_base: v0.79.3
     advisory: "GHSA-gv7w-rqvm-qjhr (high), GHSA-g7r4-m6w7-qqqr (low)"
     severity: high
+    reporting: >-
+      Not reported (ADR-0043). Out of upstream SECURITY.md scope: dev/build-only
+      dependency, not reachable through Pi. Retire on the upstream bump + sync.
     description: >-
       esbuild >= 0.17.0 < 0.28.1 (Deno-module RCE via attacker-controlled
       NPM_CONFIG_REGISTRY; Windows dev-server path traversal). Dev-only build
