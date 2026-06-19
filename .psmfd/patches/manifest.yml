@@ -187,3 +187,36 @@ patches:
     upstream_fixed_in: null
     psmfd_commit: null
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-006
+    status: active
+    upstream_base: v0.79.5
+    advisory: "GHSA-vmh5-mc38-953g (high), GHSA-38rv-x7px-6hhq (high), GHSA-pr7r-676h-xcf6 (medium)"
+    severity: high
+    reporting: >-
+      Determination pending maintainer (ADR-0043). Unlike the dev/build-only
+      patches, undici is a runtime HTTP/proxy/WebSocket dependency reachable
+      through Pi, so these findings may fall inside upstream SECURITY.md scope.
+      Upstream reporting is human-led; materials are preparable but the agent
+      does not file. Likely retires on the upstream bump + sync.
+    description: >-
+      undici >= 8.0.0 < 8.5.0: TLS certificate validation bypass via dropped
+      requestTls in the SOCKS5 ProxyAgent (GHSA-vmh5-mc38-953g), WebSocket client
+      DoS via cumulative fragment bypass (GHSA-38rv-x7px-6hhq), and cross-user
+      cache information disclosure via whitespace bypass (GHSA-pr7r-676h-xcf6).
+      Direct runtime dependency of @earendil-works/pi (coding-agent). No upstream
+      fix or fix in flight at v0.79.5 (verified: no open PR, issue, or commit).
+      Fix: bump undici 8.3.0 -> 8.5.0. (The gondolin example's transitive undici
+      6.26.0 is outside the >= 8.0.0 vulnerable range and unaffected.)
+    patched_paths:
+      - packages/coding-agent/package.json
+      - package-lock.json
+      - packages/coding-agent/npm-shrinkwrap.json
+    evidence: >-
+      undici resolves to 8.5.0 (root lockfile + published shrinkwrap); npm audit
+      clears all three GHSAs; `npm run check` and `./test.sh` pass.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

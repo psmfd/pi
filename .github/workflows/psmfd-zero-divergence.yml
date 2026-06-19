@@ -87,6 +87,8 @@ jobs:
               "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
               # psmfd-patch-004 — esbuild GHSA-gv7w/GHSA-g7r4 (root package.json; lockfile already listed)
               "package.json",
+              # psmfd-patch-006 — undici GHSA-vmh5/GHSA-38rv/GHSA-pr7r (shrinkwrap; coding-agent package.json + lockfile already listed)
+              "packages/coding-agent/npm-shrinkwrap.json",
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
