@@ -91,6 +91,20 @@ function hasUnsafeGitInstallPart(value: string, allowSlash: boolean): boolean {
 		if (candidate.includes("\0") || candidate.includes("\\") || candidate.startsWith("/")) {
 			return true;
 		}
+		// A host or path beginning with "-" can be parsed by git as a
+		// command-line option at the clone/fetch sinks (e.g. an option-shaped
+		// host), turning attacker-controlled input into argument injection.
+		// Reject it, plus control characters and whitespace, matching the ref
+		// guard in hasUnsafeGitRef.
+		if (candidate.startsWith("-")) {
+			return true;
+		}
+		for (const ch of candidate) {
+			const code = ch.codePointAt(0) ?? 0;
+			if (code <= 0x20 || code === 0x7f) {
+				return true;
+			}
+		}
 		if (!allowSlash && candidate.includes("/")) {
 			return true;
 		}
@@ -203,6 +217,16 @@ export function parseGitUrl(source: string): GitSource | null {
 	const url = hasGitPrefix ? trimmed.slice(4).trim() : trimmed;
 
 	if (!hasGitPrefix && !/^(https?|ssh|git):\/\//i.test(url)) {
+		return null;
+	}
+
+	// The git: prefix relaxes the protocol allowlist for historical shorthand,
+	// but git transport helpers (ext::/fd::/git::), the "<transport>::<address>"
+	// remote-helper syntax, and file:// local clones can execute commands or
+	// read local paths. Reject them regardless of prefix. The remote-helper
+	// "::" marker is always a leading "<transport>::"; an IPv6 "::" only appears
+	// inside a bracketed URL authority, so it is unaffected.
+	if (/^file:/i.test(url) || /^[a-z][a-z0-9+.-]*::/i.test(url)) {
 		return null;
 	}
 

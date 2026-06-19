@@ -1792,7 +1792,7 @@ export class DefaultPackageManager implements PackageManager {
 		}
 		mkdirSync(dirname(targetDir), { recursive: true });
 
-		await this.runCommand("git", ["clone", source.repo, targetDir]);
+		await this.runCommand("git", ["clone", "--end-of-options", source.repo, targetDir]);
 		if (source.ref) {
 			await this.runCommand("git", ["checkout", "--end-of-options", source.ref], { cwd: targetDir });
 		}
