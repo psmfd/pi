@@ -40,3 +40,5 @@ packages/coding-agent/examples/extensions/sandbox/package-lock.json
 package.json
 # psmfd-patch-006 — undici GHSA-vmh5/GHSA-38rv/GHSA-pr7r (shrinkwrap; coding-agent package.json + lockfile already listed)
 packages/coding-agent/npm-shrinkwrap.json
+# psmfd-patch-007 — transitive overrides (protobufjs/ws/vite); shrinkwrap allowlist bump for protobufjs (package.json/lockfile/shrinkwrap already listed)
+scripts/generate-coding-agent-shrinkwrap.mjs
