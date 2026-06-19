@@ -220,3 +220,42 @@ patches:
     upstream_fixed_in: null
     psmfd_commit: null
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-007
+    status: active
+    upstream_base: v0.79.5
+    advisory: "protobufjs GHSA-wcpc-wj8m-hjx6 (high), GHSA-f38q-mgvj-vph7 (medium); ws GHSA-96hv-2xvq-fx4p (high); vite GHSA-fx2h-pf6j-xcff (high), GHSA-v6wh-96g9-6wx3 (medium)"
+    severity: high
+    reporting: >-
+      Mixed (ADR-0043). protobufjs and ws are runtime deps reachable through Pi's
+      provider HTTP/WebSocket layer (@google/genai, @mistralai/mistralai, openai)
+      and may fall inside upstream SECURITY.md scope — reporting is human-led, not
+      auto-filed. vite is dev/build-only (test tooling, dev-server-only advisories)
+      and is out of upstream scope.
+    description: >-
+      Vulnerable transitive dependencies that a stale lockfile pinned below the
+      patched versions their parents' ranges already permit. Per ADR-0044 (pi_config)
+      security entries are added to the root `overrides` block and the tree
+      re-resolved: protobufjs 7.5.9 -> 7.6.4 (via @google/genai ^7.5.4), ws
+      8.20.1 -> 8.21.0 (via the provider SDKs ^8.18.0), vite 7.3.3 -> 7.3.5 (via
+      vitest). The coding-agent shrinkwrap install-script allowlist is bumped
+      protobufjs@7.5.9 -> 7.6.4 (same benign version-scheme postinstall). No
+      upstream fix or fix in flight at v0.79.5 (verified: no open PR/issue/commit).
+      ACCEPTED RESIDUAL: the transitive vite->esbuild 0.27.7 (GHSA-g7r4-m6w7-qqqr,
+      low, dev-server-on-Windows file read) is not fixed — esbuild 0.28.1 is
+      outside vite's pinned esbuild range and forcing it risks the dev build;
+      retires when upstream vite bundles a patched esbuild.
+    patched_paths:
+      - package.json
+      - package-lock.json
+      - packages/coding-agent/npm-shrinkwrap.json
+      - scripts/generate-coding-agent-shrinkwrap.mjs
+    evidence: >-
+      npm audit clears the protobufjs, ws, and vite advisories (only the accepted
+      esbuild low residual remains); `npm run check` and `./test.sh` pass with
+      vitest running under vite 7.3.5.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
