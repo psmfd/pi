@@ -148,3 +148,42 @@ patches:
     upstream_fixed_in: null
     psmfd_commit: null
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-005
+    status: active
+    upstream_base: v0.79.5
+    advisory: "CodeQL js/shell-command-constructed-from-input (psmfd/pi alerts 33-37)"
+    severity: medium
+    reporting: >-
+      Not reported (ADR-0043). Out of upstream SECURITY.md scope: reachable only
+      when installing a git-sourced package/extension ("installing untrusted
+      packages" + "user-initiated local action"). Defense-in-depth hardening of
+      git argument/transport handling; offerable as optional hardening via the
+      contribution path, not pursued.
+    description: >-
+      parseGitUrl/buildGitSource build git repo/ref strings from a package
+      source URL that flow into `git clone`/`fetch`/`checkout`. psmfd-patch-001
+      guarded the ref; this completes the hardening of the same surface:
+      (a) pass `--end-of-options` before source.repo at the clone sink so a
+      repo string can never be parsed as a git option; (b) reject option-like
+      (leading "-"), control-character and whitespace host/path components in
+      hasUnsafeGitInstallPart, matching the existing ref guard; (c) reject git
+      transport helpers (ext::/fd::), the "<transport>::<address>" remote-helper
+      syntax, and file:// local-clone transports in parseGitUrl even under the
+      git: prefix that relaxes the protocol allowlist. No shell is used at the
+      sinks (argv spawn), so this closes the residual git-argument/transport
+      surface rather than a shell-injection one.
+    patched_paths:
+      - packages/coding-agent/src/utils/git.ts
+      - packages/coding-agent/src/core/package-manager.ts
+      - packages/coding-agent/test/git-ssh-url.test.ts
+      - packages/coding-agent/test/package-manager.test.ts
+    evidence: >-
+      Regression tests: git-ssh-url.test.ts rejects ext::/fd::/file:// transports
+      and option-shaped/whitespace host/path; package-manager.test.ts asserts the
+      clone runs with `--end-of-options`. `npm run check` + `./test.sh` clean.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

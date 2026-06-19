@@ -758,6 +758,14 @@ Content`,
 
 			await packageManager.install(source);
 
+			// The clone source URL is passed after --end-of-options so it can never
+			// be parsed by git as an option (psmfd-patch-005).
+			expect(runCommandSpy).toHaveBeenCalledWith("git", [
+				"clone",
+				"--end-of-options",
+				"https://github.com/user/repo",
+				targetDir,
+			]);
 			expect(runCommandSpy).toHaveBeenCalledWith("npm", ["install", "--omit=dev"], { cwd: targetDir });
 		});
 

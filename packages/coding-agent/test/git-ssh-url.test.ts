@@ -112,4 +112,43 @@ describe("Git URL Parsing", () => {
 			expect(parseGitUrl("https://github.com/user/repo@feature/x")).toMatchObject({ ref: "feature/x" });
 		});
 	});
+
+	describe("transport and argument hardening (CodeQL js/shell-command-constructed-from-input)", () => {
+		// The git: prefix relaxes the protocol allowlist; git transport helpers
+		// and file:// local clones must still be rejected so a source string
+		// cannot run commands (ext::/fd::) or read local paths (file://).
+		it("should reject git transport helpers and file:// transports", () => {
+			for (const source of [
+				"git:file:///etc/passwd",
+				"git:ext::sh -c 'id'",
+				"git:fd::0/user/repo",
+				"git:transport::address",
+				"git:ext::git-upload-pack",
+			]) {
+				expect(parseGitUrl(source)).toBeNull();
+			}
+		});
+
+		// A host or path beginning with "-" would be parsed by git as an option
+		// at the clone sink; whitespace in a host can split into extra ssh args.
+		it("should reject option-shaped or whitespace host/path components", () => {
+			for (const source of [
+				"git:git@-evil.example:user/repo",
+				"git:git@evil.example:-evil/repo",
+				"git:git@evil example:user/repo",
+			]) {
+				expect(parseGitUrl(source)).toBeNull();
+			}
+		});
+
+		it("should still accept ordinary protocol and shorthand URLs", () => {
+			expect(parseGitUrl("https://github.com/user/repo")).toMatchObject({ repo: "https://github.com/user/repo" });
+			expect(parseGitUrl("git:git@github.com:user/repo")).toMatchObject({ repo: "git@github.com:user/repo" });
+			// An IPv6 authority contains "::" but must NOT be caught by the
+			// leading "<transport>::" remote-helper reject.
+			expect(parseGitUrl("https://[2001:db8::1]/user/repo")).toMatchObject({
+				repo: "https://[2001:db8::1]/user/repo",
+			});
+		});
+	});
 });
