@@ -33,7 +33,7 @@
 patches:
   - id: psmfd-patch-001
     status: active
-    upstream_base: v0.79.3
+    upstream_base: v0.79.5
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
     reporting: >-
@@ -68,7 +68,7 @@ patches:
 
   - id: psmfd-patch-002
     status: active
-    upstream_base: v0.79.3
+    upstream_base: v0.79.5
     advisory: "CVE-2026-47429 / GHSA-5xrq-8626-4rwp"
     severity: critical
     reporting: >-
@@ -78,8 +78,9 @@ patches:
     description: >-
       vitest < 3.2.6 allows arbitrary file read / code execution when the
       Vitest UI server is exposed to the network or run on Windows. Upstream
-      bump PR (earendil-works/pi#5451) was closed unmerged; upstream HEAD still
-      pins 3.2.4. Fix: bump vitest (and @vitest/coverage-v8) to 3.2.6.
+      bump PR (earendil-works/pi#5451) was closed unmerged; upstream still pins
+      3.2.4 through v0.79.5 (verified: no open fix PR, issue, or post-tag
+      commit). Fix: bump vitest (and @vitest/coverage-v8) to 3.2.6.
     patched_paths:
       - packages/agent/package.json
       - packages/ai/package.json
@@ -96,7 +97,7 @@ patches:
 
   - id: psmfd-patch-003
     status: active
-    upstream_base: v0.79.3
+    upstream_base: v0.79.5
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p"
     severity: critical
     reporting: >-
@@ -124,7 +125,7 @@ patches:
 
   - id: psmfd-patch-004
     status: active
-    upstream_base: v0.79.3
+    upstream_base: v0.79.5
     advisory: "GHSA-gv7w-rqvm-qjhr (high), GHSA-g7r4-m6w7-qqqr (low)"
     severity: high
     reporting: >-
