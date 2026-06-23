@@ -39,3 +39,26 @@ workflows:
         keyless signing only. All third-party actions SHA-pinned. Accepted
         network inputs at build time: npm registry via lockfile, bun.sh
         cross-target runtimes, version-pinned clipboard bindings.
+  - path: .github/workflows/psmfd-divergence-detect.yml
+    classification: psmfd-developed
+    purpose: >-
+      Detective complement to psmfd-zero-divergence: on every push to main,
+      fail loudly and open an alert issue if the push introduced non-overlay
+      changes that did not arrive via a trusted upstream-sync PR, or if it was
+      a force-push. Covers the gap created by the protect-main ruleset's Admin
+      bypass actor (which lets the maintainer force-push past the PR guard).
+    approved_by: PSMFD
+    approval_reference: "ruleset migration (classic -> protect-main)"
+    review:
+      triggers_reviewed: true
+      permissions_reviewed: true
+      secrets_reviewed: true
+      third_party_actions_reviewed: true
+      release_behavior_reviewed: true
+      notes: >-
+        push: main only. No checkout and no third-party actions (uses the
+        Compare API via gh, mirroring the PR guard). Least privilege:
+        contents:read + pull-requests:read to read the push diff and the
+        associated PR, issues:write to file the alert. No repository secrets;
+        uses the default GITHUB_TOKEN. Reuses the guard's overlay matcher
+        (EXACT/SECURITY_PATCH_PATHS/REGEXES) — keep in lockstep.

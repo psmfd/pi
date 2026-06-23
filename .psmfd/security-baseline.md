@@ -36,14 +36,46 @@ runnable workflow must appear in `.psmfd/workflow-allowlist.yml`.
   overlay for this detached mirror.
 - Active workflow directory policy: `.github/workflows/` is reserved for PSMFD
   workflows whose filenames start with `psmfd-`.
-- Active workflow set: `.github/workflows/psmfd-zero-divergence.yml` and
+- Active workflow set: `.github/workflows/psmfd-zero-divergence.yml`,
   `.github/workflows/psmfd-release.yml` (build-and-attest releases per
   ADR-0038; `workflow_dispatch` only so the workflow body always loads from
-  the protected default branch; recorded in the workflow allowlist).
+  the protected default branch; recorded in the workflow allowlist), and
+  `.github/workflows/psmfd-divergence-detect.yml` (detective post-push
+  divergence check, see "Branch protection" below).
 - Upstream workflow reference directory:
   `.github/workflows-upstream-reference/`.
 - Branch protection must require the `enforce overlay path allowlist` status
-  check before public release.
+  check before public release (now carried by the `protect-main` ruleset; see
+  "Branch protection" below).
+
+## Branch protection
+
+`main` is governed by the **`protect-main` repository ruleset** (migrated from
+classic branch protection): require a pull request, the required status check
+`enforce overlay path allowlist`, block force pushes, and block deletion. The
+inherited enterprise ruleset layers additional review requirements on top
+(GitHub enforces the union). The separate `protect-psmfd-release-tags` tag
+ruleset is unaffected.
+
+The ruleset grants the **repository Admin role a bypass actor**
+(`bypass_mode: always`) so the solo maintainer can force-push to `main` as an
+operational escape hatch, while non-admin collaborators remain fully bound by
+the regular process (PR + required check + no force-push). This deliberately
+trades the all-or-nothing classic `enforce_admins` toggle for a role-scoped
+bypass. Accepted residual: a ruleset bypass actor bypasses the *entire* ruleset,
+so an admin force-push (or direct push) can land non-overlay source on `main`
+without the preventive PR guard running.
+
+Because that gap is inherent to allowing force-push at all, it is covered by a
+**detective control**: `.github/workflows/psmfd-divergence-detect.yml` runs on
+every push to `main` and fails loudly + opens a `divergence-alert` issue if the
+push introduced non-overlay changes that did not arrive via a trusted
+`sync/upstream-*` PR, or if it was a force-push. It cannot block the push (the
+bypass already happened) but makes the event auditable and red-flags the next
+release. Its overlay matcher is duplicated from `psmfd-zero-divergence.yml` and
+must be kept in lockstep. When collaborators are added, switch the bypass to a
+named-user actor (or never grant a collaborator the Admin role) to avoid the
+bypass leaking by role.
 
 ## Dependabot scope
 
