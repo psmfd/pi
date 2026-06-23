@@ -85,10 +85,27 @@ PRs for upstream-owned lockfiles without an explicit upstream-sync decision.
 
 ## Secret-scanning baseline
 
-Gitleaks is the canonical local secret scanner for the public-flip gate. This
-mirror carries a root `.gitleaks.toml` because it preserves upstream history and
-must distinguish accepted upstream-public scanner noise from PSMFD-owned
-secrets.
+Gitleaks is the canonical secret scanner for the public-flip and upstream-sync
+gates. This mirror carries a root `.gitleaks.toml` because it preserves upstream
+history and must distinguish accepted upstream-public scanner noise from
+PSMFD-owned secrets.
+
+The gate runs two ways, both using this mirror's own `.gitleaks.toml`:
+
+- **CI (continuous):** the `psmfd-secrets-scan` workflow scans the push/PR commit
+  range on every change to `main`, using a digest-pinned public gitleaks
+  container (`ghcr.io/gitleaks/gitleaks`). The mirror is public and pi_config is
+  private, so a pinned public image is used rather than a pi_config-hosted
+  reusable workflow (a public repo cannot call a private repo's reusable
+  workflow). See pi_config ADR-0048.
+- **Local/manual:** `scan-secrets --range OLD..NEW` (pi_config ADR-0048, installed
+  to `~/.local/bin`); `.psmfd/sync-upstream.sh validate` invokes it over
+  `main..HEAD` when the merge is committed. Because the allowlists are
+  commit-scoped, the scan must run in gitleaks' `git` (history/range) mode — a
+  working-tree scan would not apply them.
+
+Keep the pinned gitleaks version in the workflow in step with pi_config's
+vendored binary pin (ADR-0037).
 
 The current allowlist is scoped by commit and path only. It covers:
 

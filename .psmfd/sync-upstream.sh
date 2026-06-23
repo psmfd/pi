@@ -513,10 +513,28 @@ cmd_validate() {
   info "npm audit (report only)…"
   npm audit || warn "audit" "npm audit reported findings — triage each against the patch manifest (non-fatal: many are dev/build-only or already patch-tracked)"
 
-  # The runbook's gitleaks gate is mandatory before merge but is not run here
-  # (the scanner lives in pi_config, not the mirror). Surface it so it cannot be
-  # silently skipped.
-  warn "gitleaks" "MANDATORY before merge and NOT automated here: scan the new range with gitleaks and record version + exit status in the PR evidence block"
+  # Gitleaks gate. The psmfd-secrets-scan workflow runs this automatically on the
+  # sync PR (pinned public container, mirror .gitleaks.toml). Run it locally too
+  # when scan-secrets (pi_config ADR-0048) is installed and the merge is already
+  # committed, so a finding surfaces before the push. A `git`-mode range scan is
+  # required (not a working-tree scan): the mirror's .gitleaks.toml allowlists are
+  # commit-scoped and only apply when gitleaks walks history.
+  info "gitleaks gate (also enforced by the psmfd-secrets-scan CI workflow)…"
+  if ! command -v scan-secrets >/dev/null 2>&1; then
+    warn "gitleaks" "scan-secrets not on PATH (install via pi_config setup.sh, ADR-0048); relying on the psmfd-secrets-scan CI gate — record its version + exit status in the PR evidence block"
+  elif git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+    warn "gitleaks" "merge not yet committed; commit then re-run 'validate', or rely on the psmfd-secrets-scan CI gate"
+  elif ! git rev-parse -q --verify main >/dev/null 2>&1; then
+    warn "gitleaks" "no local 'main' ref to bound the range; rely on the psmfd-secrets-scan CI gate"
+  else
+    info "scan-secrets --range main..HEAD"
+    if scan-secrets --range "main..HEAD"; then
+      ok "gitleaks" "no findings over main..HEAD"
+    else
+      err "gitleaks" "gitleaks findings over main..HEAD (see redacted report above)"
+      rc=1
+    fi
+  fi
 
   print_summary
   return "$rc"
