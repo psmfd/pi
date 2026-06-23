@@ -33,7 +33,7 @@
 patches:
   - id: psmfd-patch-001
     status: active
-    upstream_base: v0.79.5
+    upstream_base: v0.79.10
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
     reporting: >-
@@ -67,7 +67,7 @@ patches:
     psmfd_retire_commit: null
 
   - id: psmfd-patch-002
-    status: active
+    status: retired
     upstream_base: v0.79.5
     advisory: "CVE-2026-47429 / GHSA-5xrq-8626-4rwp"
     severity: critical
@@ -91,13 +91,13 @@ patches:
       `./test.sh` pass under 3.2.6 (dev-only dependency).
     upstream_issue: null
     upstream_pr: null
-    upstream_fixed_in: null
+    upstream_fixed_in: v0.79.8
     psmfd_commit: null
-    psmfd_retire_commit: null
+    psmfd_retire_commit: sync/upstream-v0.79.10
 
   - id: psmfd-patch-003
     status: active
-    upstream_base: v0.79.5
+    upstream_base: v0.79.10
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p"
     severity: critical
     reporting: >-
@@ -124,7 +124,7 @@ patches:
     psmfd_retire_commit: null
 
   - id: psmfd-patch-004
-    status: active
+    status: retired
     upstream_base: v0.79.5
     advisory: "GHSA-gv7w-rqvm-qjhr (high), GHSA-g7r4-m6w7-qqqr (low)"
     severity: high
@@ -145,13 +145,13 @@ patches:
       dependency).
     upstream_issue: null
     upstream_pr: null
-    upstream_fixed_in: null
+    upstream_fixed_in: v0.79.8
     psmfd_commit: null
-    psmfd_retire_commit: null
+    psmfd_retire_commit: sync/upstream-v0.79.10
 
   - id: psmfd-patch-005
     status: active
-    upstream_base: v0.79.5
+    upstream_base: v0.79.10
     advisory: "CodeQL js/shell-command-constructed-from-input (psmfd/pi alerts 33-37)"
     severity: medium
     reporting: >-
@@ -189,7 +189,7 @@ patches:
     psmfd_retire_commit: null
 
   - id: psmfd-patch-006
-    status: active
+    status: retired
     upstream_base: v0.79.5
     advisory: "GHSA-vmh5-mc38-953g (high), GHSA-38rv-x7px-6hhq (high), GHSA-pr7r-676h-xcf6 (medium)"
     severity: high
@@ -217,12 +217,12 @@ patches:
       clears all three GHSAs; `npm run check` and `./test.sh` pass.
     upstream_issue: null
     upstream_pr: null
-    upstream_fixed_in: null
+    upstream_fixed_in: v0.79.8
     psmfd_commit: null
-    psmfd_retire_commit: null
+    psmfd_retire_commit: sync/upstream-v0.79.10
 
   - id: psmfd-patch-007
-    status: active
+    status: retired
     upstream_base: v0.79.5
     advisory: "protobufjs GHSA-wcpc-wj8m-hjx6 (high), GHSA-f38q-mgvj-vph7 (medium); ws GHSA-96hv-2xvq-fx4p (high); vite GHSA-fx2h-pf6j-xcff (high), GHSA-v6wh-96g9-6wx3 (medium)"
     severity: high
@@ -256,6 +256,6 @@ patches:
       vitest running under vite 7.3.5.
     upstream_issue: null
     upstream_pr: null
-    upstream_fixed_in: null
+    upstream_fixed_in: v0.79.8
     psmfd_commit: null
-    psmfd_retire_commit: null
+    psmfd_retire_commit: sync/upstream-v0.79.10
