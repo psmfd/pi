@@ -1,0 +1,197 @@
+---
+# psmfd-divergence-detect.yml — post-merge / post-push divergence detector.
+#
+# The `protect-main` ruleset grants the repository Admin role a bypass actor, so
+# the maintainer can force-push to `main` (an explicit operational escape hatch).
+# That same bypass means a direct push or force-push can land upstream-owned
+# source on `main` WITHOUT the pull-request `psmfd-zero-divergence` guard running
+# (that guard is a PR check; a direct push has no PR). This workflow is the
+# DETECTIVE complement to that PREVENTIVE guard: it runs on every push to `main`
+# and fails loudly + opens an alert issue when a push introduced non-overlay
+# changes that did not arrive through a trusted upstream-sync PR (or when the
+# push diff cannot be fully verified). It cannot block the push (the bypass
+# already happened), but it makes the event visible and auditable and red-flags
+# the next release. See pi_config ADR-0046 and `.psmfd/security-baseline.md`.
+name: PSMFD divergence detector
+
+'on':
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  detect-divergence:
+    name: detect post-push divergence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check pushed changes against the overlay allowlist
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          FORCED: ${{ github.event.forced }}
+          PUSHER: ${{ github.event.pusher.name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TRUSTED_SYNC_ACTOR: TheSemicolon
+        run: |
+          set -euo pipefail
+
+          : "${GH_TOKEN:?}"
+          : "${GITHUB_REPOSITORY:?}"
+          : "${AFTER:?}"
+
+          # git's all-zeros object id (branch just created) -> diff from the
+          # canonical empty tree so every file reads as added.
+          EMPTY_TREE=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+          base="${BEFORE:-$EMPTY_TREE}"
+          case "$base" in
+            0000000000000000000000000000000000000000|"") base="$EMPTY_TREE" ;;
+          esac
+
+          # Changed files in the push via the Compare API (no checkout, mirrors
+          # the pull-request guard's API-only approach). A failure here is a SCAN
+          # error, not a clean result: fail the run (no alert issue) rather than
+          # silently report "no divergence". 3-dot compare is exact for a normal
+          # push; for a force-push it may over-list files from pre-force ancestry,
+          # which only enriches the alert body (force-pushes are gated below on
+          # the violation count, not the raw file list).
+          if ! gh api --paginate \
+                 "repos/${GITHUB_REPOSITORY}/compare/${base}...${AFTER}" \
+                 --jq '.files[]?.filename, (.files[]?.previous_filename // empty)' \
+                 > changed.txt 2>/dev/null; then
+            echo "ERROR [scan] could not fetch the push diff (Compare API failed)" >&2
+            exit 1
+          fi
+          sort -u changed.txt -o changed.txt
+          file_count="$(wc -l < changed.txt | tr -d ' ')"
+
+          # The Compare API caps files[] at 300 and does not paginate them. At the
+          # cap the diff is truncated and cannot be fully verified -> fail closed
+          # (treat as needing review unless it is a trusted sync, decided below).
+          truncated=no
+          [ "$file_count" -ge 300 ] && truncated=yes
+
+          # Overlay allowlist matcher — DUPLICATED from psmfd-zero-divergence.yml.
+          # Hardcoded ON PURPOSE: a push-triggered detector must not read the
+          # allowlist from the working tree, because the same push being judged
+          # could also edit the allowlist to whitelist its own divergence. Keep
+          # the EXACT / SECURITY_PATCH_PATHS / REGEXES sets in lockstep with the
+          # guard and with .psmfd/overlay-allowlist.txt + the manifest
+          # (ADR-0041/ADR-053); retired-patch paths must be removed from all
+          # copies together, or this detector goes stale and under-reports.
+          python3 - <<'PY' > violations.txt
+          import re
+
+          EXACT = {
+              "PROVENANCE.md", "README.md", "README.psmfd.md", "SECURITY.md",
+              "NOTICE.psmfd.md", ".gitleaks.toml", ".github/CODEOWNERS",
+              ".github/dependabot.yml",
+          }
+          SECURITY_PATCH_PATHS = {
+              "packages/coding-agent/src/utils/git.ts",
+              "packages/coding-agent/src/core/package-manager.ts",
+              "packages/coding-agent/test/git-ssh-url.test.ts",
+              "packages/coding-agent/test/git-update.test.ts",
+              "packages/coding-agent/test/package-manager.test.ts",
+              "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
+              "packages/agent/package.json",
+              "packages/ai/package.json",
+              "packages/coding-agent/package.json",
+              "package-lock.json",
+              "package.json",
+              "packages/coding-agent/npm-shrinkwrap.json",
+              "scripts/generate-coding-agent-shrinkwrap.mjs",
+          }
+          REGEXES = (
+              re.compile(r"^\.psmfd/.+"),
+              re.compile(r"^\.github/workflows/psmfd-[^/]+\.ya?ml$"),
+              re.compile(r"^\.github/workflows-upstream-reference/[^/]+\.ya?ml$"),
+              re.compile(r"^\.github/workflows-upstream-reference/README\.md$"),
+          )
+
+          def allowed(path: str) -> bool:
+              if path in EXACT or path in SECURITY_PATCH_PATHS:
+                  return True
+              return any(r.match(path) for r in REGEXES)
+
+          with open("changed.txt", encoding="utf-8") as fh:
+              for line in fh:
+                  p = line.strip()
+                  if p and not allowed(p):
+                      print(p)
+          PY
+
+          violations="$(wc -l < violations.txt | tr -d ' ')"
+
+          # Trusted upstream-sync import? Require ALL of: not a force-push, the
+          # associated PR head ref is sync/upstream-*, authored by the trusted
+          # actor, AND from THIS repository (not a fork) — matching every
+          # condition of the preventive guard. One API call; sentinels avoid
+          # empty-field ambiguity.
+          trusted=no
+          if [ "${FORCED}" != "true" ]; then
+            read -r pr_ref pr_author pr_repo < <(
+              gh api "repos/${GITHUB_REPOSITORY}/commits/${AFTER}/pulls" \
+                --jq '"\(.[0].head.ref // "-") \(.[0].user.login // "-") \(.[0].head.repo.full_name // "-")"' \
+                2>/dev/null || echo "- - -"
+            )
+            case "$pr_ref" in
+              sync/upstream-*)
+                if [ "$pr_author" = "${TRUSTED_SYNC_ACTOR}" ] && [ "$pr_repo" = "${GITHUB_REPOSITORY}" ]; then
+                  trusted=yes
+                fi ;;
+            esac
+          fi
+
+          if [ "${FORCED}" = "true" ]; then
+            echo "WARN  [force-push] main was force-pushed (violations=${violations}, truncated=${truncated})" >&2
+          fi
+
+          # Alert on unverified divergence: non-overlay changes OR a truncated
+          # (un-verifiable) diff, when the push did not arrive via a trusted sync.
+          if [ "$trusted" != "yes" ] && { [ "$violations" -gt 0 ] || [ "$truncated" = "yes" ]; }; then
+            if [ "$truncated" = "yes" ]; then
+              reason="Push diff exceeds the Compare API 300-file cap and could not be fully verified."
+            else
+              reason="${violations} non-overlay path(s) changed on main without a trusted upstream-sync PR."
+            fi
+            {
+              echo "## :warning: Divergence detector tripped on \`main\`"
+              echo
+              echo "- Reason: ${reason}"
+              echo "- Pushed by: ${PUSHER:-unknown}"
+              echo "- Range: \`${BEFORE}\` -> \`${AFTER}\`"
+              echo "- Forced: \`${FORCED}\`  Files in diff: ${file_count}  Truncated: ${truncated}"
+              echo "- Run: ${RUN_URL}"
+              if [ "$violations" -gt 0 ]; then
+                echo
+                echo "Non-overlay paths changed:"
+                echo '```'
+                cat violations.txt
+                echo '```'
+              fi
+              echo
+              echo "This push bypassed the preventive \`psmfd-zero-divergence\` PR guard."
+              echo "Review immediately and, if this is an unintended divergence, revert"
+              echo "\`main\` before cutting any release (ADR-0038 build boundary)."
+            } > alert.md
+
+            gh issue create --repo "${GITHUB_REPOSITORY}" \
+              --title "Divergence detected on main (${AFTER})" \
+              --body-file alert.md --label divergence-alert 2>/dev/null \
+              || gh issue create --repo "${GITHUB_REPOSITORY}" \
+                   --title "Divergence detected on main (${AFTER})" --body-file alert.md \
+              || echo "WARN  [alert] could not file the divergence-alert issue" >&2
+
+            echo "ERROR [divergence] ${reason}" >&2
+            exit 1
+          fi
+
+          echo "OK    [divergence] no untrusted divergence (violations=${violations}, forced=${FORCED}, trusted=${trusted}, truncated=${truncated})"
