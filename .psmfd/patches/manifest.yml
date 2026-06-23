@@ -33,7 +33,7 @@
 patches:
   - id: psmfd-patch-001
     status: active
-    upstream_base: v0.79.10
+    upstream_base: v0.80.1
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
     reporting: >-
@@ -97,7 +97,7 @@ patches:
 
   - id: psmfd-patch-003
     status: active
-    upstream_base: v0.79.10
+    upstream_base: v0.80.1
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p"
     severity: critical
     reporting: >-
@@ -151,7 +151,7 @@ patches:
 
   - id: psmfd-patch-005
     status: active
-    upstream_base: v0.79.10
+    upstream_base: v0.80.1
     advisory: "CodeQL js/shell-command-constructed-from-input (psmfd/pi alerts 33-37)"
     severity: medium
     reporting: >-
