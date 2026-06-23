@@ -31,9 +31,11 @@
 #                        --no-ff merge the upstream tag (leaves conflicts for
 #                        resolve).
 #   resolve              Mechanically resolve conflicts (--ours for current
-#                        overlay-allowlist paths, --theirs otherwise) and
-#                        quarantine any upstream workflow files. Run AFTER any
-#                        patch-retirement allowlist edits.
+#                        overlay-allowlist paths, --theirs otherwise), reset
+#                        exclusively-retired patch paths to upstream (catches
+#                        auto-merged ones the conflict pass misses), and
+#                        quarantine any upstream workflow files. Run AFTER the
+#                        manifest (status: retired) and allowlist retirement edits.
 #   reconcile <tag>      Report, per manifest patch, whether upstream <tag>
 #                        changed the patched paths (retirement signal). Decision
 #                        stays human-gated.
@@ -251,18 +253,19 @@ cmd_merge() {
   git switch main          || fatal "merge" "could not switch to main" 2
   git pull --ff-only       || fatal "merge" "git pull --ff-only on main failed (diverged or no tracking branch)" 2
   git switch -c "$branch"  || fatal "merge" "could not create ${branch}" 2
-  info "Created ${branch}; merging refs/upstream/tags/${tag} (--no-ff)…"
-  if git merge "refs/upstream/tags/${tag}" --no-ff \
+  info "Created ${branch}; merging refs/upstream/tags/${tag} (--no-ff --no-commit)…"
+  # --no-commit leaves BOTH clean and conflicted merges staged-but-uncommitted,
+  # so `resolve` (conflict resolution + retired-path reset + workflow quarantine)
+  # always runs before the commit. A clean merge that auto-committed would skip
+  # `resolve` and leave auto-merged retired-patch hunks in place.
+  if git merge "refs/upstream/tags/${tag}" --no-ff --no-commit \
        -m "sync: incorporate upstream ${tag}"; then
-    ok "merge" "merged cleanly with no conflicts"
-    # A clean merge can still introduce upstream workflow files; quarantine runs
-    # unconditionally (the conflict path defers it to `resolve`).
-    quarantine_workflows
-    info "Run '$0 reconcile ${tag}' for the patch signal, then '$0 validate'."
+    ok "merge" "merged with no conflicts (staged, not committed)"
   else
     local n; n="$(git diff --name-only --diff-filter=U | wc -l | tr -d ' ')"
-    warn "merge" "${n} conflicted path(s); review '$0 reconcile ${tag}', edit the allowlist for any patch retirements, then run: $0 resolve"
+    warn "merge" "${n} conflicted path(s)"
   fi
+  info "Next: '$0 reconcile ${tag}' -> mark approved retirements in the manifest (status: retired) + overlay-allowlist -> '$0 resolve' -> review -> git commit"
   print_summary
   [ "$LOG_ERROR_COUNT" -eq 0 ] || return 1
 }
@@ -289,6 +292,60 @@ quarantine_workflows() {
   [ "$moved" -eq 0 ] && ok "quarantine" "no non-psmfd workflows to quarantine in .github/workflows/" || true
 }
 
+# Emit the manifest paths owned EXCLUSIVELY by retired patches (in a retired
+# patch, in no active patch). Order-independent and indentation-anchored: owner
+# status is resolved over the whole file at END (a patch whose `patched_paths:`
+# precedes its `status:` is still classified correctly), and keys are matched at
+# their exact YAML indent (`^    status:` / `^      - `) so a colon or dash inside
+# a folded `description:`/`evidence:`/`reporting:` scalar (deeper-indented prose)
+# cannot be mistaken for a field or a list item.
+exclusively_retired_paths() {
+  awk '
+    /^  - id:/            { id = $3 }
+    /^    status:/        { st[id] = $2 }
+    /^    patched_paths:/ { inp = 1; next }
+    /^      - / && inp    { n++; path[n] = $2; owner[n] = id; next }
+    /^    [A-Za-z_]+:/    { inp = 0 }
+    END {
+      for (i = 1; i <= n; i++) {
+        if (st[owner[i]] == "retired") ret[path[i]] = 1; else act[path[i]] = 1
+      }
+      for (p in ret) if (!(p in act)) print p
+    }
+  ' "$MANIFEST" | sort -u
+}
+
+# A retired patch's paths may have AUTO-MERGED (no conflict), silently carrying
+# PSMFD patch hunks onto the merged tree — the conflict loop only touches
+# conflicted paths, so those would survive. Reset every exclusively-retired path
+# to the merged-in upstream revision (MERGE_HEAD), completing retirement. Paths
+# also owned by an ACTIVE patch are excluded by exclusively_retired_paths (the
+# shared-path guard). Runs only during a merge; the manifest must already reflect
+# the approved retirements.
+reset_retired_paths() {
+  git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 \
+    || { skip "reset-retired" "not in a merge; skipped"; return 0; }
+  [ -f "$MANIFEST" ] || return 0
+  local p reset=0
+  while IFS= read -r p; do
+    [ -z "$p" ] && continue
+    if git checkout MERGE_HEAD -- "$p" 2>/dev/null; then
+      git add -- "$p"; ok "reset-retired" "$p -> upstream (retired)"; reset=$((reset+1))
+    elif git cat-file -e "MERGE_HEAD:$p" 2>/dev/null; then
+      # Path exists upstream but checkout failed — surface it, do not skip silently.
+      err "reset-retired" "could not reset $p to upstream"
+    else
+      # Path absent from upstream (deleted there); retirement means removing it too.
+      if git rm -q -- "$p" 2>/dev/null; then
+        ok "reset-retired" "$p removed (deleted upstream)"; reset=$((reset+1))
+      else
+        warn "reset-retired" "$p absent from MERGE_HEAD and not present to remove"
+      fi
+    fi
+  done < <(exclusively_retired_paths)
+  [ "$reset" -eq 0 ] && skip "reset-retired" "no exclusively-retired paths to reset" || true
+}
+
 cmd_resolve() {
   require_repo_root
   local conflicts; conflicts="$(git diff --name-only --diff-filter=U || true)"
@@ -310,6 +367,7 @@ cmd_resolve() {
     done <<< "$conflicts"
   fi
 
+  reset_retired_paths
   quarantine_workflows
 
   local remaining; remaining="$(git diff --name-only --diff-filter=U || true)"
