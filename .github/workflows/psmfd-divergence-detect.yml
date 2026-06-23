@@ -95,19 +95,16 @@ jobs:
               ".github/dependabot.yml",
           }
           SECURITY_PATCH_PATHS = {
+              # psmfd-patch-001 / -005 (git arg/transport hardening); shared paths.
               "packages/coding-agent/src/utils/git.ts",
               "packages/coding-agent/src/core/package-manager.ts",
               "packages/coding-agent/test/git-ssh-url.test.ts",
               "packages/coding-agent/test/git-update.test.ts",
               "packages/coding-agent/test/package-manager.test.ts",
+              # psmfd-patch-003 — shell-quote (sandbox lockfile); upstream still 1.8.3.
               "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
-              "packages/agent/package.json",
-              "packages/ai/package.json",
-              "packages/coding-agent/package.json",
-              "package-lock.json",
-              "package.json",
-              "packages/coding-agent/npm-shrinkwrap.json",
-              "scripts/generate-coding-agent-shrinkwrap.mjs",
+              # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync; their
+              # paths are intentionally absent (lockstep with the guard + manifest).
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
