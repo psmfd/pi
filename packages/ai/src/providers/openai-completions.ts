@@ -10,10 +10,12 @@ import type {
 	ChatCompletionSystemMessageParam,
 	ChatCompletionToolMessageParam,
 } from "openai/resources/chat/completions.js";
+import { registerApiProvider } from "../api-registry.ts";
 import { calculateCost, clampThinkingLevel } from "../models.ts";
 import type {
 	AssistantMessage,
 	CacheRetention,
+	ChatTemplateKwargValue,
 	Context,
 	ImageContent,
 	Message,
@@ -76,6 +78,20 @@ function isImageContentBlock(block: { type: string }): block is ImageContent {
 	return block.type === "image";
 }
 
+function isEncryptedReasoningDetail(detail: unknown): detail is OpenAIEncryptedReasoningDetail {
+	if (typeof detail !== "object" || detail === null) {
+		return false;
+	}
+	const candidate = detail as Record<string, unknown>;
+	return (
+		candidate.type === "reasoning.encrypted" &&
+		typeof candidate.id === "string" &&
+		candidate.id.length > 0 &&
+		typeof candidate.data === "string" &&
+		candidate.data.length > 0
+	);
+}
+
 export interface OpenAICompletionsOptions extends StreamOptions {
 	toolChoice?: "auto" | "none" | "required" | { type: "function"; function: { name: string } };
 	reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh";
@@ -90,7 +106,15 @@ type ResolvedOpenAICompletionsCompat = Omit<Required<OpenAICompletionsCompat>, "
 	cacheControlFormat?: OpenAICompletionsCompat["cacheControlFormat"];
 };
 
+type ResolvedChatTemplateKwargValue = string | number | boolean | null;
+
 type ChatCompletionInstructionMessageParam = ChatCompletionDeveloperMessageParam | ChatCompletionSystemMessageParam;
+
+type OpenAIEncryptedReasoningDetail = {
+	type: "reasoning.encrypted";
+	id: string;
+	data: string;
+};
 
 type ChatCompletionTextPartWithCacheControl = ChatCompletionContentPartText & {
 	cache_control?: OpenAICompatCacheControl;
@@ -173,6 +197,7 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 			let hasFinishReason = false;
 			const toolCallBlocksByIndex = new Map<number, StreamingToolCallBlock>();
 			const toolCallBlocksById = new Map<string, StreamingToolCallBlock>();
+			const pendingReasoningDetailsByToolCallId = new Map<string, string>();
 			const blocks = output.content as StreamingBlock[];
 			const getContentIndex = (block: StreamingBlock) => blocks.indexOf(block);
 			const finishBlock = (block: StreamingBlock) => {
@@ -228,6 +253,16 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 				}
 				return thinkingBlock;
 			};
+			const applyPendingReasoningDetail = (block: StreamingToolCallBlock) => {
+				if (!block.id) {
+					return;
+				}
+				const pendingReasoningDetail = pendingReasoningDetailsByToolCallId.get(block.id);
+				if (pendingReasoningDetail) {
+					block.thoughtSignature = pendingReasoningDetail;
+					pendingReasoningDetailsByToolCallId.delete(block.id);
+				}
+			};
 			const ensureToolCallBlock = (toolCall: StreamingToolCallDelta) => {
 				const streamIndex = typeof toolCall.index === "number" ? toolCall.index : undefined;
 				let block = streamIndex !== undefined ? toolCallBlocksByIndex.get(streamIndex) : undefined;
@@ -263,6 +298,7 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 				if (toolCall.id) {
 					toolCallBlocksById.set(toolCall.id, block);
 				}
+				applyPendingReasoningDetail(block);
 				return block;
 			};
 
@@ -372,15 +408,16 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 						}
 					}
 
-					const reasoningDetails = (choice.delta as any).reasoning_details;
-					if (reasoningDetails && Array.isArray(reasoningDetails)) {
+					const reasoningDetails = (choice.delta as { reasoning_details?: unknown }).reasoning_details;
+					if (Array.isArray(reasoningDetails)) {
 						for (const detail of reasoningDetails) {
-							if (detail.type === "reasoning.encrypted" && detail.id && detail.data) {
-								const matchingToolCall = output.content.find(
-									(b) => b.type === "toolCall" && b.id === detail.id,
-								) as ToolCall | undefined;
+							if (isEncryptedReasoningDetail(detail)) {
+								const serializedDetail = JSON.stringify(detail);
+								const matchingToolCall = toolCallBlocksById.get(detail.id);
 								if (matchingToolCall) {
-									matchingToolCall.thoughtSignature = JSON.stringify(detail);
+									matchingToolCall.thoughtSignature = serializedDetail;
+								} else {
+									pendingReasoningDetailsByToolCallId.set(detail.id, serializedDetail);
 								}
 							}
 						}
@@ -448,6 +485,14 @@ export const streamSimpleOpenAICompletions: StreamFunction<"openai-completions",
 		toolChoice,
 	} satisfies OpenAICompletionsOptions);
 };
+
+export function register(): void {
+	registerApiProvider({
+		api: "openai-completions",
+		stream: streamOpenAICompletions,
+		streamSimple: streamSimpleOpenAICompletions,
+	});
+}
 
 function createClient(
 	model: Model<"openai-completions">,
@@ -576,6 +621,11 @@ function buildParams(
 			enable_thinking: !!options?.reasoningEffort,
 			preserve_thinking: true,
 		};
+	} else if (compat.thinkingFormat === "chat-template" && model.reasoning) {
+		const chatTemplateKwargs = buildChatTemplateKwargs(model, options, compat);
+		if (chatTemplateKwargs) {
+			(params as any).chat_template_kwargs = chatTemplateKwargs;
+		}
 	} else if (compat.thinkingFormat === "deepseek" && model.reasoning) {
 		if (options?.reasoningEffort) {
 			(params as any).thinking = { type: "enabled" };
@@ -644,6 +694,44 @@ function buildParams(
 	}
 
 	return params;
+}
+
+function buildChatTemplateKwargs(
+	model: Model<"openai-completions">,
+	options: OpenAICompletionsOptions | undefined,
+	compat: ResolvedOpenAICompletionsCompat,
+): Record<string, ResolvedChatTemplateKwargValue> | undefined {
+	const kwargs: Record<string, ResolvedChatTemplateKwargValue> = {};
+
+	for (const [key, value] of Object.entries(compat.chatTemplateKwargs)) {
+		const resolved = resolveChatTemplateKwargValue(model, options, value);
+		if (resolved !== undefined) {
+			kwargs[key] = resolved;
+		}
+	}
+
+	return Object.keys(kwargs).length > 0 ? kwargs : undefined;
+}
+
+function resolveChatTemplateKwargValue(
+	model: Model<"openai-completions">,
+	options: OpenAICompletionsOptions | undefined,
+	value: ChatTemplateKwargValue,
+): ResolvedChatTemplateKwargValue | undefined {
+	if (typeof value !== "object" || value === null) {
+		return value;
+	}
+
+	const reasoningEffort = options?.reasoningEffort;
+	if (!reasoningEffort && value.omitWhenOff) {
+		return undefined;
+	}
+	if (value.$var === "thinking.enabled") {
+		return !!reasoningEffort;
+	}
+
+	const mappedValue = reasoningEffort ? model.thinkingLevelMap?.[reasoningEffort] : model.thinkingLevelMap?.off;
+	return mappedValue === undefined ? reasoningEffort : typeof mappedValue === "string" ? mappedValue : undefined;
 }
 
 function getCompatCacheControl(
@@ -1158,6 +1246,7 @@ function detectCompat(model: Model<"openai-completions">): ResolvedOpenAIComplet
 							: "openai",
 		openRouterRouting: {},
 		vercelGatewayRouting: {},
+		chatTemplateKwargs: {},
 		zaiToolStream: false,
 		supportsStrictMode: !isMoonshot && !isTogether && !isCloudflareAiGateway && !isNvidia,
 		cacheControlFormat,
@@ -1196,6 +1285,7 @@ function getCompat(model: Model<"openai-completions">): ResolvedOpenAICompletion
 		thinkingFormat: model.compat.thinkingFormat ?? detected.thinkingFormat,
 		openRouterRouting: model.compat.openRouterRouting ?? {},
 		vercelGatewayRouting: model.compat.vercelGatewayRouting ?? detected.vercelGatewayRouting,
+		chatTemplateKwargs: model.compat.chatTemplateKwargs ?? detected.chatTemplateKwargs,
 		zaiToolStream: model.compat.zaiToolStream ?? detected.zaiToolStream,
 		supportsStrictMode: model.compat.supportsStrictMode ?? detected.supportsStrictMode,
 		cacheControlFormat: model.compat.cacheControlFormat ?? detected.cacheControlFormat,
