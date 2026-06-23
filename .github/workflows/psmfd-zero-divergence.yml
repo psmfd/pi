@@ -72,25 +72,20 @@ jobs:
           # allowlist data only; it does not change the guard's trust model, and
           # every such change still requires maintainer review before merge.
           SECURITY_PATCH_PATHS = {
-              # psmfd-patch-001 — git-ref flag injection (CodeQL 19/22)
+              # psmfd-patch-001 — git-ref flag injection (CodeQL 19/22).
+              # These five paths are SHARED with psmfd-patch-005 (git transport
+              # hardening); both active. Do not remove while either is active.
               "packages/coding-agent/src/utils/git.ts",
               "packages/coding-agent/src/core/package-manager.ts",
               "packages/coding-agent/test/git-ssh-url.test.ts",
               "packages/coding-agent/test/git-update.test.ts",
               "packages/coding-agent/test/package-manager.test.ts",
-              # psmfd-patch-002 — vitest CVE-2026-47429
-              "packages/agent/package.json",
-              "packages/ai/package.json",
-              "packages/coding-agent/package.json",
-              "package-lock.json",
-              # psmfd-patch-003 — shell-quote CVE-2026-9277 (sandbox lockfile)
+              # psmfd-patch-003 — shell-quote CVE-2026-9277 (sandbox lockfile);
+              # upstream still ships shell-quote 1.8.3 at v0.79.10, patch active.
               "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
-              # psmfd-patch-004 — esbuild GHSA-gv7w/GHSA-g7r4 (root package.json; lockfile already listed)
-              "package.json",
-              # psmfd-patch-006 — undici GHSA-vmh5/GHSA-38rv/GHSA-pr7r (shrinkwrap; coding-agent package.json + lockfile already listed)
-              "packages/coding-agent/npm-shrinkwrap.json",
-              # psmfd-patch-007 — transitive overrides (protobufjs/ws/vite); shrinkwrap allowlist bump for protobufjs (package.json/lockfile/shrinkwrap already listed)
-              "scripts/generate-coding-agent-shrinkwrap.mjs",
+              # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync (upstream
+              # shipped the fixes in v0.79.8); their paths removed here in lockstep
+              # with .psmfd/overlay-allowlist.txt and the manifest.
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
