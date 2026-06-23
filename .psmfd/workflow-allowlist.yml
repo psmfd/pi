@@ -62,3 +62,26 @@ workflows:
         associated PR, issues:write to file the alert. No repository secrets;
         uses the default GITHUB_TOKEN. Reuses the guard's overlay matcher
         (EXACT/SECURITY_PATCH_PATHS/REGEXES) — keep in lockstep.
+  - path: .github/workflows/psmfd-secrets-scan.yml
+    classification: psmfd-developed
+    purpose: >-
+      Secret scanning via a pinned PUBLIC gitleaks container
+      (ghcr.io/gitleaks/gitleaks by digest), run over the push/PR commit range
+      against the mirror's own .gitleaks.toml. Self-contained because the public
+      mirror cannot consume pi_config's private reusable workflow (pi_config
+      ADR-0048; psmfd/pi#34).
+    approved_by: PSMFD
+    approval_reference: "psmfd/pi#34"
+    review:
+      triggers_reviewed: true
+      permissions_reviewed: true
+      secrets_reviewed: true
+      third_party_actions_reviewed: true
+      release_behavior_reviewed: true
+      notes: >-
+        pull_request + push to main. permissions: contents:read only; no
+        repository secrets (default GITHUB_TOKEN). One SHA-pinned third-party
+        action (actions/checkout v4.2.2). The gitleaks image is digest-pinned
+        and bumped deliberately (no Dependabot: the digest lives in a run:
+        step). No release behavior. Runs gitleaks with --redact so a finding is
+        never printed; --exit-code=1 fails the check on any finding.
