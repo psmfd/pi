@@ -1,0 +1,144 @@
+# psmfd-reusable-publish.yml — reusable fail-closed release publisher (workflow_call).
+#
+# Downloads the build artifacts a caller job produced in the same run, verifies
+# their checksums, creates a DRAFT GitHub release, re-downloads the draft bytes
+# and verifies both their checksums AND their build-provenance attestation, and
+# only then undrafts. Any failure aborts with nothing published.
+#
+# IDENTITY-NEUTRAL BY DESIGN (the load-bearing property): this workflow does NOT
+# create attestations — the caller's own `attest` job does, so the attestation
+# signer identity (`job_workflow_ref`) stays the CALLER's release workflow, not
+# this shared file. The signer-workflow path to verify against is passed in as
+# `signer_workflow`, so each consuming repo verifies against its own identity
+# and nothing about pi's existing `gh attestation verify --signer-workflow`
+# contract changes when this factoring lands.
+#
+# Design record: pi_config ADR-forthcoming (reusable release workflows).
+# Approval record: .psmfd/workflow-allowlist.yml.
+
+---
+name: psmfd-reusable-publish
+
+'on':
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to publish"
+        required: true
+        type: string
+      tag_sha:
+        description: "The tag's resolved commit SHA (for the notes)"
+        required: true
+        type: string
+      artifact_name:
+        description: "Name of the artifact the caller's build job uploaded"
+        required: true
+        type: string
+      asset_glob:
+        description: "Shell glob (relative to the artifact dir) selecting the release assets, e.g. 'pi-*'"
+        required: true
+        type: string
+      checksums_file:
+        description: "Checksums manifest filename within the artifact"
+        required: false
+        type: string
+        default: SHA256SUMS
+      signer_workflow:
+        description: "Workflow path the attestation must be signed by, e.g. psmfd/pi/.github/workflows/psmfd-release.yml"
+        required: true
+        type: string
+      release_title:
+        description: "GitHub release title"
+        required: true
+        type: string
+      notes_body:
+        description: "Descriptive release-notes body (the verify block is appended from signer_workflow)"
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  publish:
+    name: draft release, verify, publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      # No checkout in this job; gh resolves the target repo from the
+      # environment, not from a local git directory.
+      GH_REPO: ${{ github.repository }}
+      ARTIFACT_DIR: release-assets
+    steps:
+      - name: Download built assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: release-assets
+
+      - name: Re-verify checksums before publishing
+        env:
+          CHECKSUMS: ${{ inputs.checksums_file }}
+        run: |
+          set -euo pipefail
+          cd "$ARTIFACT_DIR"
+          sha256sum -c "$CHECKSUMS"
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          TAG_SHA: ${{ inputs.tag_sha }}
+          ASSET_GLOB: ${{ inputs.asset_glob }}
+          CHECKSUMS: ${{ inputs.checksums_file }}
+          SIGNER: ${{ inputs.signer_workflow }}
+          TITLE: ${{ inputs.release_title }}
+          NOTES_BODY: ${{ inputs.notes_body }}
+        run: |
+          set -euo pipefail
+          {
+            printf '%s\n\n' "$NOTES_BODY"
+            printf 'Verify any asset with:\n\n'
+            printf '```sh\n'
+            printf 'gh attestation verify <asset> --repo %s \\\n' "$GH_REPO"
+            printf '  --signer-workflow %s\n' "$SIGNER"
+            printf 'sha256sum -c %s --ignore-missing\n' "$CHECKSUMS"
+            printf '```\n'
+          } > notes.md
+          # ASSET_GLOB is a trusted, caller-supplied static glob — intentional
+          # word-splitting + globbing to expand the asset set.
+          # shellcheck disable=SC2086
+          gh release create "$TAG" \
+            --draft \
+            --verify-tag \
+            --title "$TITLE" \
+            --notes-file notes.md \
+            "$ARTIFACT_DIR"/$ASSET_GLOB "$ARTIFACT_DIR/$CHECKSUMS"
+
+      - name: Verify the published draft bytes (fail closed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          ASSET_GLOB: ${{ inputs.asset_glob }}
+          CHECKSUMS: ${{ inputs.checksums_file }}
+          SIGNER: ${{ inputs.signer_workflow }}
+        # gh release download on a DRAFT requires a token with contents:write
+        # (draft assets are invisible to read-only tokens) — this job has it.
+        run: |
+          set -euo pipefail
+          mkdir verify-stage
+          gh release download "$TAG" --dir verify-stage
+          cd verify-stage
+          sha256sum -c "$CHECKSUMS"
+          # shellcheck disable=SC2086
+          for f in $ASSET_GLOB "$CHECKSUMS"; do
+            gh attestation verify "$f" --repo "$GH_REPO" \
+              --signer-workflow "$SIGNER"
+            echo "OK    [attest-verify] $f"
+          done
+
+      - name: Publish (undraft) release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: gh release edit "$TAG" --draft=false

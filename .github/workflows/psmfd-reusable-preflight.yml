@@ -1,0 +1,75 @@
+# psmfd-reusable-preflight.yml — reusable release-tag validation (workflow_call).
+#
+# Validates that a release tag matches a caller-supplied format and points into
+# the caller repo's default-branch history, and returns the tag + resolved
+# commit SHA. Identity-neutral: it produces no attestations and publishes
+# nothing, so it can be shared across psmfd release pipelines (psmfd/pi and
+# psmfd/pi-bash-parser) without affecting either's attestation signer identity.
+#
+# The caller passes its own tag_pattern (pi uses vX.Y.Z-psmfd.N; the parser
+# uses vX.Y.Z), so a single validator serves both without hardcoding a form.
+#
+# Design record: pi_config ADR-forthcoming (reusable release workflows).
+# Approval record: .psmfd/workflow-allowlist.yml.
+
+---
+name: psmfd-reusable-preflight
+
+'on':
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to validate"
+        required: true
+        type: string
+      tag_pattern:
+        description: "Anchored ERE the tag must match (e.g. ^v[0-9]+\\.[0-9]+\\.[0-9]+$)"
+        required: true
+        type: string
+    outputs:
+      tag:
+        description: "The validated tag"
+        value: ${{ jobs.preflight.outputs.tag }}
+      tag_sha:
+        description: "The tag's resolved commit SHA"
+        value: ${{ jobs.preflight.outputs.tag_sha }}
+
+permissions: {}
+
+jobs:
+  preflight:
+    name: validate release tag
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      tag_sha: ${{ steps.check.outputs.tag_sha }}
+    steps:
+      - name: Check out default branch (full history)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag format, existence, and main ancestry
+        id: check
+        env:
+          TAG: ${{ inputs.tag }}
+          TAG_PATTERN: ${{ inputs.tag_pattern }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$TAG" | grep -Eq "$TAG_PATTERN"; then
+            echo "ERROR [tag-format] '$TAG' does not match $TAG_PATTERN" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          TAG_SHA="$(git rev-parse "${TAG}^{commit}")"
+          MAIN_REF="refs/remotes/origin/main"
+          if ! git merge-base --is-ancestor "$TAG_SHA" "$MAIN_REF"; then
+            echo "ERROR [tag-ancestry] $TAG ($TAG_SHA) not on main" >&2
+            exit 1
+          fi
+          echo "OK    [tag] $TAG -> $TAG_SHA (ancestor of main)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag_sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
