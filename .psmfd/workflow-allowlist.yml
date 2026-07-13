@@ -21,9 +21,12 @@ workflows:
       Build pi release artifacts from the mirrored source at an existing
       vX.Y.Z-psmfd.N tag, attest the newly built bytes (keyless OIDC), and
       publish a GitHub release after fail-closed checksum and attestation
-      verification (ADR-0038, pi_config#361).
+      verification (ADR-0038, pi_config#361). Tag validation and publishing are
+      delegated to the psmfd-reusable-preflight / psmfd-reusable-publish
+      reusable workflows; build + attest stay local so the attestation signer
+      identity remains this file (pi_config ADR-forthcoming).
     approved_by: PSMFD
-    approval_reference: "PR #8"
+    approval_reference: "PR #8; reusable-workflow refactor (pi_config #506)"
     review:
       triggers_reviewed: true
       permissions_reviewed: true
@@ -34,11 +37,65 @@ workflows:
         workflow_dispatch only, so the workflow body always loads from the
         protected default branch and a release tag cannot carry its own
         workflow code. Default permissions none; per-job least privilege
-        (id-token/attestations write confined to the attest job; contents
-        write confined to the publish job). No repository secrets; OIDC
-        keyless signing only. All third-party actions SHA-pinned. Accepted
-        network inputs at build time: npm registry via lockfile, bun.sh
-        cross-target runtimes, version-pinned clipboard bindings.
+        (id-token/attestations write confined to the local attest job; contents
+        write granted to the publish job that calls psmfd-reusable-publish). No
+        repository secrets; OIDC keyless signing only. All third-party actions
+        SHA-pinned. Reusable calls use local `./.github/workflows/...` refs, so
+        they load from the same protected default branch as this caller.
+        Release behavior unchanged: attest still runs HERE, so the attestation
+        signer identity stays psmfd/pi/.github/workflows/psmfd-release.yml and
+        the consumer `gh attestation verify --signer-workflow` contract is
+        unchanged. Accepted network inputs at build time: npm registry via
+        lockfile, bun.sh cross-target runtimes, version-pinned clipboard
+        bindings.
+  - path: .github/workflows/psmfd-reusable-preflight.yml
+    classification: psmfd-developed
+    purpose: >-
+      Reusable (workflow_call) release-tag validator: checks a tag against a
+      caller-supplied format ERE and confirms main ancestry, returning the tag
+      and its commit SHA. Shared by psmfd-release.yml and psmfd/pi-bash-parser
+      (pi_config #506).
+    approved_by: PSMFD
+    approval_reference: "pi_config #506"
+    review:
+      triggers_reviewed: true
+      permissions_reviewed: true
+      secrets_reviewed: true
+      third_party_actions_reviewed: true
+      release_behavior_reviewed: true
+      notes: >-
+        workflow_call only — invocable solely by an approved caller in this repo
+        (or a cross-repo caller it is shared with), never by an external event;
+        called via a local `./` ref so it loads from the protected default
+        branch. Identity-neutral: creates no attestations and publishes nothing.
+        Single job with contents:read; one SHA-pinned action (actions/checkout
+        v6.0.3). No repository secrets (default GITHUB_TOKEN). No release
+        behavior (validation + outputs only).
+  - path: .github/workflows/psmfd-reusable-publish.yml
+    classification: psmfd-developed
+    purpose: >-
+      Reusable (workflow_call) fail-closed release publisher: verifies the
+      caller's build artifacts, drafts a release, re-verifies the drafted bytes'
+      checksums AND build-provenance attestation, then undrafts. Shared by
+      psmfd-release.yml and psmfd/pi-bash-parser (pi_config #506).
+    approved_by: PSMFD
+    approval_reference: "pi_config #506"
+    review:
+      triggers_reviewed: true
+      permissions_reviewed: true
+      secrets_reviewed: true
+      third_party_actions_reviewed: true
+      release_behavior_reviewed: true
+      notes: >-
+        workflow_call only; called via a local `./` ref so it loads from the
+        protected default branch. Identity-neutral BY DESIGN: it does NOT create
+        attestations (the caller's own attest job does), and the signer-workflow
+        path it verifies against is passed in as an input, so each caller
+        verifies against its own attestation identity and pi's existing verify
+        contract is unchanged. Single job with contents:write (draft/verify/
+        undraft). Two SHA-pinned actions (actions/download-artifact v8.0.1). No
+        repository secrets; uses the default GITHUB_TOKEN. Fail-closed: any
+        checksum or attestation-verify failure aborts before undrafting.
   - path: .github/workflows/psmfd-divergence-detect.yml
     classification: psmfd-developed
     purpose: >-

@@ -9,6 +9,17 @@
 # introduce its own unreviewed workflow code. The preflight job verifies the
 # tag exists, matches the PSMFD release form, and points into main's history.
 #
+# Structure (pi_config ADR-forthcoming): tag validation and release publishing
+# are DELEGATED to two shared reusable workflows —
+# psmfd-reusable-preflight.yml and psmfd-reusable-publish.yml — so psmfd/pi and
+# psmfd/pi-bash-parser share that boilerplate once. The `build` and `attest`
+# jobs stay LOCAL to this file on purpose: the attestation signer identity is
+# the workflow file where attest-build-provenance runs, so keeping `attest`
+# here means pi's attestation identity remains
+# psmfd/pi/.github/workflows/psmfd-release.yml — unchanged by this refactor, so
+# every existing consumer's `gh attestation verify --signer-workflow` keeps
+# working.
+#
 # Build hermeticity (Phase 0 findings, pi_config#356):
 #   - npm ci --ignore-scripts only; no lifecycle scripts.
 #   - Packages are built with tsgo directly; the packages/ai
@@ -46,40 +57,15 @@ env:
 jobs:
   preflight:
     name: validate release tag
-    runs-on: ubuntu-24.04
+    # A job that calls a reusable workflow grants it token permissions here
+    # (they are NOT inherited from a job-level default); the reusable preflight
+    # needs contents:read to check out for the ancestry check.
     permissions:
       contents: read
-    outputs:
-      tag: ${{ steps.check.outputs.tag }}
-      tag_sha: ${{ steps.check.outputs.tag_sha }}
-    steps:
-      - name: Check out default branch (full history)
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Validate tag format, existence, and main ancestry
-        id: check
-        env:
-          TAG: ${{ inputs.tag }}
-        run: |
-          set -euo pipefail
-          PAT='^v[0-9]+\.[0-9]+\.[0-9]+-psmfd\.[0-9]+$'
-          if ! printf '%s' "$TAG" | grep -Eq "$PAT"; then
-            echo "ERROR [tag-format] '$TAG' does not match vX.Y.Z-psmfd.N" >&2
-            exit 1
-          fi
-          git fetch --no-tags origin "refs/tags/${TAG}:refs/tags/${TAG}"
-          TAG_SHA="$(git rev-parse "${TAG}^{commit}")"
-          MAIN_REF="refs/remotes/origin/main"
-          if ! git merge-base --is-ancestor "$TAG_SHA" "$MAIN_REF"; then
-            echo "ERROR [tag-ancestry] $TAG ($TAG_SHA) not on main" >&2
-            exit 1
-          fi
-          echo "OK    [tag] $TAG -> $TAG_SHA (ancestor of main)"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "tag_sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
+    uses: ./.github/workflows/psmfd-reusable-preflight.yml
+    with:
+      tag: ${{ inputs.tag }}
+      tag_pattern: '^v[0-9]+\.[0-9]+\.[0-9]+-psmfd\.[0-9]+$'
 
   build:
     name: build artifacts from mirrored source
@@ -191,76 +177,19 @@ jobs:
   publish:
     name: draft release, verify, publish
     needs: [preflight, build, attest]
-    runs-on: ubuntu-24.04
     permissions:
       contents: write
-    env:
-      # No checkout in this job; gh must resolve the target repo from the
-      # environment, not from a local git directory.
-      GH_REPO: ${{ github.repository }}
-    steps:
-      - name: Download built assets
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
-        with:
-          name: psmfd-release-assets
-          path: psmfd-release-assets
-
-      - name: Re-verify checksums before publishing
-        run: |
-          set -euo pipefail
-          cd psmfd-release-assets
-          sha256sum -c SHA256SUMS
-
-      - name: Create draft release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.preflight.outputs.tag }}
-          TAG_SHA: ${{ needs.preflight.outputs.tag_sha }}
-        run: |
-          set -euo pipefail
-          BASE="${TAG%-psmfd.*}"
-          cat > notes.md <<EOF
-          PSMFD-built pi release artifacts, rebuilt from the mirrored source at
-          \`$TAG\` (commit \`$TAG_SHA\`, upstream base \`$BASE\`) per the
-          zero-divergence policy and ADR-0038 build-and-attest trust boundary.
-          These are PSMFD-built bytes, not upstream release artifacts.
-
-          Verify any asset with:
-
-          \`\`\`sh
-          gh attestation verify <asset> --repo psmfd/pi \\
-            --signer-workflow psmfd/pi/.github/workflows/psmfd-release.yml
-          sha256sum -c SHA256SUMS --ignore-missing
-          \`\`\`
-          EOF
-          gh release create "$TAG" \
-            --draft \
-            --verify-tag \
-            --title "pi $TAG (PSMFD build)" \
-            --notes-file notes.md \
-            psmfd-release-assets/pi-* psmfd-release-assets/SHA256SUMS
-
-      - name: Verify the published draft bytes (fail closed)
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.preflight.outputs.tag }}
-        # gh release download on a DRAFT requires a token with contents:write
-        # (draft assets are invisible to read-only tokens) — this job has it.
-        run: |
-          set -euo pipefail
-          SIGNER="$GITHUB_REPOSITORY/.github/workflows/psmfd-release.yml"
-          mkdir verify-stage
-          gh release download "$TAG" --dir verify-stage
-          cd verify-stage
-          sha256sum -c SHA256SUMS
-          for f in pi-* SHA256SUMS; do
-            gh attestation verify "$f" --repo "$GITHUB_REPOSITORY" \
-              --signer-workflow "$SIGNER"
-            echo "OK    [attest-verify] $f"
-          done
-
-      - name: Publish (undraft) release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.preflight.outputs.tag }}
-        run: gh release edit "$TAG" --draft=false
+    uses: ./.github/workflows/psmfd-reusable-publish.yml
+    with:
+      tag: ${{ needs.preflight.outputs.tag }}
+      tag_sha: ${{ needs.preflight.outputs.tag_sha }}
+      artifact_name: psmfd-release-assets
+      asset_glob: "pi-*"
+      signer_workflow: psmfd/pi/.github/workflows/psmfd-release.yml
+      release_title: pi ${{ needs.preflight.outputs.tag }} (PSMFD build)
+      notes_body: >-
+        PSMFD-built pi release artifacts, rebuilt from the mirrored source at
+        `${{ needs.preflight.outputs.tag }}` (commit
+        `${{ needs.preflight.outputs.tag_sha }}`) per the zero-divergence policy
+        and ADR-0038 build-and-attest trust boundary. These are PSMFD-built
+        bytes, not upstream release artifacts.
