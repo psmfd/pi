@@ -47,7 +47,7 @@ workflows:
         the consumer `gh attestation verify --signer-workflow` contract is
         unchanged. Accepted network inputs at build time: npm registry via
         lockfile, bun.sh cross-target runtimes, version-pinned clipboard
-        bindings, and (since upstream v0.81.x, PR #44) the
+        bindings, and (since upstream v0.81.x, PR #45) the
         @earendil-works/pi-ai@<base> registry tarball — npm-integrity-verified
         source for the gitignored model-data JSON the hermetic build no longer
         finds committed (upstream #6765); no live provider-catalog fetches.
