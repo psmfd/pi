@@ -23,8 +23,13 @@
 # Build hermeticity (Phase 0 findings, pi_config#356):
 #   - npm ci --ignore-scripts only; no lifecycle scripts.
 #   - Packages are built with tsgo directly; the packages/ai
-#     generate-models step (live network fetches) is skipped — the
-#     generated model files are committed source.
+#     generate-models step (live network fetches of provider catalogs) is
+#     skipped. Since upstream v0.81.0 the model DATA lives in gitignored
+#     packages/ai/src/providers/data/*.json (upstream #6765), so the build
+#     hydrates those files from the upstream-published
+#     @earendil-works/pi-ai@<base> registry tarball — version-matched,
+#     npm-integrity-verified, same registry trust surface as npm ci; no
+#     live provider fetches.
 #   - Bun is pinned (upstream pins it only in its own workflow file).
 #   - Known, accepted network inputs: npm registry (lockfile-resolved),
 #     bun.sh cross-target runtimes fetched by `bun build --compile`,
@@ -96,6 +101,21 @@ jobs:
 
       - name: Install dependencies (lockfile, no lifecycle scripts)
         run: npm ci --ignore-scripts
+
+      - name: Hydrate model data from the published pi-ai package
+        run: |
+          set -euo pipefail
+          BASE="${TAG%-psmfd.*}"
+          BASE="${BASE#v}"
+          # npm verifies the tarball against the registry's recorded
+          # integrity (sha512) during pack; no live provider fetches.
+          npm pack "@earendil-works/pi-ai@${BASE}" --pack-destination "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/earendil-works-pi-ai-${BASE}.tgz" \
+            -C "$RUNNER_TEMP" package/dist/providers/data
+          mkdir -p packages/ai/src/providers/data
+          cp "$RUNNER_TEMP"/package/dist/providers/data/*.json \
+            packages/ai/src/providers/data/
+          ls packages/ai/src/providers/data | wc -l
 
       - name: Build packages (hermetic — skip network model generation)
         run: |
