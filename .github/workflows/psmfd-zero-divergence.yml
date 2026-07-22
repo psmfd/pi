@@ -80,9 +80,17 @@ jobs:
               "packages/coding-agent/test/git-ssh-url.test.ts",
               "packages/coding-agent/test/git-update.test.ts",
               "packages/coding-agent/test/package-manager.test.ts",
-              # psmfd-patch-003 — shell-quote CVE-2026-9277 (sandbox lockfile);
-              # upstream still ships shell-quote 1.8.3 at v0.79.10, patch active.
+              # psmfd-patch-003 — shell-quote CVE-2026-9277 + GHSA-395f-4hp3-45gv
+              # (sandbox lockfile); upstream still ships 1.8.3 at v0.81.1, active.
               "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
+              # psmfd-patch-008 — protobufjs GHSA-j3f2-48v5-ccww + root shell-quote
+              # GHSA-395f-4hp3-45gv (lockfile re-resolution per ADR-0044).
+              "package.json",
+              "package-lock.json",
+              "packages/coding-agent/npm-shrinkwrap.json",
+              "packages/coding-agent/install-lock/package-lock.json",
+              "scripts/generate-coding-agent-shrinkwrap.mjs",
+              "scripts/generate-coding-agent-install-lock.mjs",
               # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync (upstream
               # shipped the fixes in v0.79.8); their paths removed here in lockstep
               # with .psmfd/overlay-allowlist.txt and the manifest.
