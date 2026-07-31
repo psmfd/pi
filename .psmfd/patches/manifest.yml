@@ -33,7 +33,7 @@
 patches:
   - id: psmfd-patch-001
     status: active
-    upstream_base: v0.81.1
+    upstream_base: v0.83.0
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
     reporting: >-
@@ -97,7 +97,7 @@ patches:
 
   - id: psmfd-patch-003
     status: active
-    upstream_base: v0.81.1
+    upstream_base: v0.83.0
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p; GHSA-395f-4hp3-45gv (quadratic DoS in parse(), <= 1.8.4, published 2026-07-20)"
     severity: critical
     reporting: >-
@@ -110,7 +110,7 @@ patches:
       dependency of the sandbox example extension via
       @anthropic-ai/sandbox-runtime. Upstream fixed only the root lockfile
       (commit a7f9fe68, picked up by the v0.79.2 sync); the sandbox example
-      lockfile still carried 1.8.3. Fix: pin shell-quote 1.8.4 in the sandbox
+      lockfile still carries 1.8.3 as of v0.83.0. Fix: pin shell-quote 1.8.4 in the sandbox
       lockfile. REFRESHED post-v0.81.1 sync: GHSA-395f-4hp3-45gv (published
       2026-07-20) widens the vulnerable range to <= 1.8.4 (patched 1.9.0), so
       the pin is raised to 1.10.0 (still satisfies the parent ^1.8.3 range).
@@ -154,7 +154,7 @@ patches:
 
   - id: psmfd-patch-005
     status: active
-    upstream_base: v0.81.1
+    upstream_base: v0.83.0
     advisory: "CodeQL js/shell-command-constructed-from-input (psmfd/pi alerts 33-37)"
     severity: medium
     reporting: >-
@@ -265,40 +265,31 @@ patches:
 
   - id: psmfd-patch-008
     status: active
-    upstream_base: v0.81.1
-    advisory: "protobufjs GHSA-j3f2-48v5-ccww (moderate, infinite-loop DoS in .proto option parsing, published 2026-07-20); shell-quote GHSA-395f-4hp3-45gv (high, quadratic DoS in parse(), published 2026-07-20)"
+    upstream_base: v0.83.0
+    advisory: "shell-quote GHSA-395f-4hp3-45gv (high, quadratic DoS in parse(), <= 1.8.4, patched 1.9.0, published 2026-07-20)"
     severity: high
     reporting: >-
-      Determination pending maintainer (ADR-0043). protobufjs is a runtime
-      transitive dependency reachable through Pi's provider layer
-      (@earendil-works/pi-ai -> @google/genai), so the finding may fall inside
-      upstream SECURITY.md scope; reporting is human-led, not auto-filed.
-      Root-lockfile shell-quote is dev-only at root (not in the published
-      shrinkwrap/install-lock) and out of upstream scope. Both advisories were
-      published ~5h after upstream cut v0.81.1; expect upstream Dependabot to
-      pick them up — retire on the upstream bump + sync.
+      Not reported (ADR-0043). Root-lockfile shell-quote is dev-only at root
+      (not in the published shrinkwrap/install-lock) and out of upstream
+      SECURITY.md scope. Expect upstream Dependabot to move past 1.8.4;
+      retire on the upstream bump + sync that ships >= 1.9.0.
     description: >-
-      Vulnerable transitive dependencies the v0.81.1 lockfile pins below the
-      patched versions their parents' ranges already permit (same class as
-      retired psmfd-patch-007, mechanism per ADR-0044 pi_config): protobufjs
-      7.6.4 -> 7.6.5 (via @google/genai; lockfile re-resolution — the range
-      permits it, no overrides entry needed beyond re-resolve) and root
-      dev-tree shell-quote 1.8.4 -> 1.10.0. The coding-agent shrinkwrap and
-      install-lock generator allowlists are bumped protobufjs@7.6.4 ->
-      protobufjs@7.6.5 (same benign version-scheme postinstall warning), and
-      both generated artifacts are regenerated.
+      NARROWED at the v0.83.0 sync. Originally covered two advisories on the
+      v0.81.1 base: protobufjs GHSA-j3f2-48v5-ccww and root shell-quote
+      GHSA-395f-4hp3-45gv. Upstream v0.83.0 ships protobufjs 7.6.5 in the root
+      lockfile, shrinkwrap, and install-lock, plus the matching
+      protobufjs@7.6.5 generator allowlists, so the protobufjs half retired on
+      that sync (paths dropped from the allowlist and guard in lockstep).
+      Upstream's root lockfile still pins shell-quote 1.8.4 — inside the
+      vulnerable <= 1.8.4 range — so the remaining divergence is the root
+      dev-tree shell-quote re-resolution 1.8.4 -> 1.10.0 (the parent range
+      permits it; mechanism per ADR-0044 pi_config).
     patched_paths:
-      - package.json
       - package-lock.json
-      - packages/coding-agent/npm-shrinkwrap.json
-      - packages/coding-agent/install-lock/package-lock.json
-      - scripts/generate-coding-agent-shrinkwrap.mjs
-      - scripts/generate-coding-agent-install-lock.mjs
     evidence: >-
-      protobufjs resolves to 7.6.5 in the root lockfile, shrinkwrap, and
-      install-lock; shell-quote resolves to 1.10.0 at root; npm audit reports 0
-      vulnerabilities; npm run check (incl. check:shrinkwrap and
-      check:install-lock:coding-agent) and the non-e2e test suite pass.
+      shell-quote resolves to 1.10.0 in the root lockfile (verified registry
+      integrity) and satisfies the parent range; npm audit reports 0
+      vulnerabilities for the root tree.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null

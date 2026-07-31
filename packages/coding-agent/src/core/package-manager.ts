@@ -1834,13 +1834,19 @@ export class DefaultPackageManager implements PackageManager {
 		}
 		mkdirSync(dirname(targetDir), { recursive: true });
 
-		await this.runCommand("git", ["clone", "--end-of-options", source.repo, targetDir]);
-		if (source.ref) {
-			await this.runCommand("git", ["checkout", "--end-of-options", source.ref], { cwd: targetDir });
-		}
-		const packageJsonPath = join(targetDir, "package.json");
-		if (existsSync(packageJsonPath)) {
-			await this.runNpmCommand(this.getGitDependencyInstallArgs(), { cwd: targetDir });
+		try {
+			await this.runCommand("git", ["clone", "--end-of-options", source.repo, targetDir]);
+			if (source.ref) {
+				await this.runCommand("git", ["checkout", "--end-of-options", source.ref], { cwd: targetDir });
+			}
+			const packageJsonPath = join(targetDir, "package.json");
+			if (existsSync(packageJsonPath)) {
+				await this.runNpmCommand(this.getGitDependencyInstallArgs(), { cwd: targetDir });
+			}
+		} catch (error) {
+			rmSync(targetDir, { recursive: true, force: true });
+			this.pruneEmptyGitParents(targetDir, gitRoot);
+			throw error;
 		}
 	}
 
