@@ -113,8 +113,13 @@ jobs:
           tar -xzf "$RUNNER_TEMP/earendil-works-pi-ai-${BASE}.tgz" \
             -C "$RUNNER_TEMP" package/dist/providers/data
           mkdir -p packages/ai/src/providers/data
+          # The glob must include the hidden .manifest.json — all.ts imports
+          # ./data/.manifest.json (generatedAt), and a bare *.json misses
+          # dotfiles, failing the build at tsgo time (>= upstream v0.83.0).
           cp "$RUNNER_TEMP"/package/dist/providers/data/*.json \
+            "$RUNNER_TEMP"/package/dist/providers/data/.manifest.json \
             packages/ai/src/providers/data/
+          test -f packages/ai/src/providers/data/.manifest.json
           ls packages/ai/src/providers/data | wc -l
 
       - name: Build packages (hermetic — skip network model generation)
