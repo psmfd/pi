@@ -86,7 +86,11 @@ jobs:
               # psmfd-patch-008 — root shell-quote GHSA-395f-4hp3-45gv (lockfile
               # re-resolution per ADR-0044). Narrowed at the v0.83.0 sync: the
               # protobufjs half retired (upstream ships 7.6.5); root lockfile only.
+              # psmfd-patch-009 — brace-expansion 5.0.8 re-pin (runtime transitive
+              # of the published coding agent). package-lock.json shared with 008.
               "package-lock.json",
+              "packages/coding-agent/npm-shrinkwrap.json",
+              "packages/coding-agent/install-lock/package-lock.json",
               # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync (upstream
               # shipped the fixes in v0.79.8); their paths removed here in lockstep
               # with .psmfd/overlay-allowlist.txt and the manifest.

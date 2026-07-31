@@ -295,3 +295,40 @@ patches:
     upstream_fixed_in: null
     psmfd_commit: null
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-009
+    status: active
+    upstream_base: v0.83.0
+    advisory: "brace-expansion GHSA-mh99-v99m-4gvg (high, DoS via unbounded expansion length -> OOM crash, <= 5.0.7, patched 5.0.8)"
+    severity: high
+    reporting: >-
+      Not reported (ADR-0043). Lockfile-only under-resolution: the parent
+      range (minimatch@10.2.5 -> brace-expansion ^5.0.5) already permits the
+      patched version; expect upstream Dependabot to move past 5.0.7. Retire
+      on the sync that ships >= 5.0.8 upstream.
+    description: >-
+      brace-expansion <= 5.0.7 is vulnerable to a DoS (unbounded expansion
+      length causing an out-of-memory process crash). It is a RUNTIME
+      transitive dependency of the published coding agent
+      (@earendil-works/pi-coding-agent -> minimatch@10.2.5), so it ships in
+      the npm-shrinkwrap and install-lock artifacts, not just the dev tree.
+      Fix: lockfile re-resolution 5.0.7 -> 5.0.8 (mechanism per ADR-0044
+      pi_config; the parent range permits it, no overrides entry needed) and
+      regeneration of the coding-agent shrinkwrap and install-lock. 5.0.8
+      (published 2026-07-23) is preferred over 5.0.9 (published 2026-07-30)
+      because it satisfies the advisory while clearing the repo's
+      min-release-age=2 npm gate without an override.
+    patched_paths:
+      - package-lock.json
+      - packages/coding-agent/npm-shrinkwrap.json
+      - packages/coding-agent/install-lock/package-lock.json
+    evidence: >-
+      brace-expansion resolves to 5.0.8 (verified registry integrity) in the
+      root lockfile, shrinkwrap, and install-lock; npm run check (incl.
+      check:shrinkwrap and check:install-lock:coding-agent) passes; npm audit
+      no longer reports GHSA-mh99-v99m-4gvg.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

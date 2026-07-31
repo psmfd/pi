@@ -40,7 +40,13 @@ packages/coding-agent/examples/extensions/sandbox/package-lock.json
 # shrinkwrap/install-lock generator allowlists; root shell-quote remains 1.8.4
 # upstream (vulnerable, <= 1.8.4 per GHSA-395f), so only the root lockfile
 # re-pin stays.
+# psmfd-patch-009 — brace-expansion GHSA-mh99-v99m-4gvg (runtime transitive of
+# the published coding agent via minimatch; lockfile re-resolution 5.0.7 ->
+# 5.0.8 per ADR-0044). package-lock.json is SHARED with psmfd-patch-008 —
+# both active; do not remove while either is active.
 package-lock.json
+packages/coding-agent/npm-shrinkwrap.json
+packages/coding-agent/install-lock/package-lock.json
 # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync — upstream shipped
 # the fixes in v0.79.8 (vitest 4.1.9, esbuild 0.28.1, undici 8.5.0, and
 # transitive protobufjs 7.6.4 / ws 8.21.0 / vite 8.0.16). Their paths are
