@@ -125,9 +125,22 @@ jobs:
       - name: Build packages (hermetic — skip network model generation)
         run: |
           set -euo pipefail
+          # Mirrors the root `npm run build` chain, EXCEPT packages/ai, which is
+          # built with tsgo directly so its `generate-models` prebuild (live
+          # provider catalog fetches) never runs — the model data is hydrated
+          # from the version-matched npm tarball in the step above.
+          #
+          # Keep this list in sync with the root package.json "build" script.
+          # Upstream v0.84.0 added packages/telemetry (imported by ai and agent)
+          # plus protocol/client/server; omitting any of them fails at tsgo time.
           (cd packages/tui && npm run build)
+          (cd packages/telemetry && npm run build)
           (cd packages/ai && npx tsgo -p tsconfig.build.json)
           (cd packages/agent && npm run build)
+          (cd packages/session-backends/sqlite-node && npm run build)
+          (cd packages/protocol && npm run build)
+          (cd packages/client && npm run build)
+          (cd packages/server && npm run build)
           (cd packages/coding-agent && npm run build)
 
       - name: Compile platform binaries and upstream-shaped archives
