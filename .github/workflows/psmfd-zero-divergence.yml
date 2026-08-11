@@ -81,16 +81,12 @@ jobs:
               "packages/coding-agent/test/git-update.test.ts",
               "packages/coding-agent/test/package-manager.test.ts",
               # psmfd-patch-003 — shell-quote CVE-2026-9277 + GHSA-395f-4hp3-45gv
-              # (sandbox lockfile); upstream still ships 1.8.3 at v0.83.0, active.
+              # (sandbox lockfile); upstream STILL ships 1.8.3 at v0.84.1, active.
               "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
-              # psmfd-patch-008 — root shell-quote GHSA-395f-4hp3-45gv (lockfile
-              # re-resolution per ADR-0044). Narrowed at the v0.83.0 sync: the
-              # protobufjs half retired (upstream ships 7.6.5); root lockfile only.
-              # psmfd-patch-009 — brace-expansion 5.0.8 re-pin (runtime transitive
-              # of the published coding agent). package-lock.json shared with 008.
-              "package-lock.json",
-              "packages/coding-agent/npm-shrinkwrap.json",
-              "packages/coding-agent/install-lock/package-lock.json",
+              # psmfd-patch-008/009 RETIRED at the v0.84.1 sync — upstream v0.84.0
+              # ships brace-expansion 5.0.9 (>= our 5.0.8 pin) and root shell-quote
+              # 1.10.0 (== ours), so package-lock.json, npm-shrinkwrap.json, and
+              # install-lock/package-lock.json are no longer exempt.
               # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync (upstream
               # shipped the fixes in v0.79.8); their paths removed here in lockstep
               # with .psmfd/overlay-allowlist.txt and the manifest.

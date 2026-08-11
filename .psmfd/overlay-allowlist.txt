@@ -32,22 +32,18 @@ packages/coding-agent/test/git-ssh-url.test.ts
 packages/coding-agent/test/git-update.test.ts
 packages/coding-agent/test/package-manager.test.ts
 # psmfd-patch-003 — shell-quote CVE-2026-9277 + GHSA-395f-4hp3-45gv (sandbox
-# lockfile). Upstream still ships shell-quote 1.8.3 at v0.83.0; patch active.
+# lockfile). Upstream STILL ships shell-quote 1.8.3 at v0.84.1 (vulnerable,
+# <= 1.8.4 per GHSA-395f; patched in 1.9.0), so this patch stays active even
+# though the root-lockfile siblings retired — the sandbox example tree was not
+# re-resolved upstream. Re-verify the version, not the reconcile signal.
 packages/coding-agent/examples/extensions/sandbox/package-lock.json
-# psmfd-patch-008 — root shell-quote GHSA-395f-4hp3-45gv (lockfile
-# re-resolution per ADR-0044). NARROWED at the v0.83.0 sync: the protobufjs
-# half (GHSA-j3f2-48v5-ccww) retired — upstream ships 7.6.5 plus the matching
-# shrinkwrap/install-lock generator allowlists; root shell-quote remains 1.8.4
-# upstream (vulnerable, <= 1.8.4 per GHSA-395f), so only the root lockfile
-# re-pin stays.
-# psmfd-patch-009 — brace-expansion GHSA-mh99-v99m-4gvg (runtime transitive of
-# the published coding agent via minimatch; lockfile re-resolution 5.0.7 ->
-# 5.0.8 per ADR-0044). package-lock.json is SHARED with psmfd-patch-008 —
-# both active; do not remove while either is active.
-package-lock.json
-packages/coding-agent/npm-shrinkwrap.json
-packages/coding-agent/install-lock/package-lock.json
 # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync — upstream shipped
 # the fixes in v0.79.8 (vitest 4.1.9, esbuild 0.28.1, undici 8.5.0, and
 # transitive protobufjs 7.6.4 / ws 8.21.0 / vite 8.0.16). Their paths are
 # removed from this allowlist and SECURITY_PATCH_PATHS in lockstep.
+# psmfd-patch-008/009 RETIRED at the v0.84.1 sync — upstream shipped both fixes
+# in v0.84.0: brace-expansion 5.0.7 -> 5.0.9 (>= the 5.0.8 our patch pinned) and
+# root shell-quote 1.8.4 -> 1.10.0 (== ours). Keeping the re-pins would have
+# DOWNGRADED brace-expansion. package-lock.json, npm-shrinkwrap.json, and
+# install-lock/package-lock.json are removed from this allowlist and
+# SECURITY_PATCH_PATHS in lockstep.
