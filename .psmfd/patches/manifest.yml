@@ -33,7 +33,7 @@
 patches:
   - id: psmfd-patch-001
     status: active
-    upstream_base: v0.83.0
+    upstream_base: v0.84.1
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
     reporting: >-
@@ -97,7 +97,7 @@ patches:
 
   - id: psmfd-patch-003
     status: active
-    upstream_base: v0.83.0
+    upstream_base: v0.84.1
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p; GHSA-395f-4hp3-45gv (quadratic DoS in parse(), <= 1.8.4, published 2026-07-20)"
     severity: critical
     reporting: >-
@@ -154,7 +154,7 @@ patches:
 
   - id: psmfd-patch-005
     status: active
-    upstream_base: v0.83.0
+    upstream_base: v0.84.1
     advisory: "CodeQL js/shell-command-constructed-from-input (psmfd/pi alerts 33-37)"
     severity: medium
     reporting: >-
@@ -264,8 +264,8 @@ patches:
     psmfd_retire_commit: sync/upstream-v0.79.10
 
   - id: psmfd-patch-008
-    status: active
-    upstream_base: v0.83.0
+    status: retired
+    upstream_base: v0.84.1
     advisory: "shell-quote GHSA-395f-4hp3-45gv (high, quadratic DoS in parse(), <= 1.8.4, patched 1.9.0, published 2026-07-20)"
     severity: high
     reporting: >-
@@ -292,13 +292,13 @@ patches:
       vulnerabilities for the root tree.
     upstream_issue: null
     upstream_pr: null
-    upstream_fixed_in: null
+    upstream_fixed_in: v0.84.0
     psmfd_commit: null
-    psmfd_retire_commit: null
+    psmfd_retire_commit: sync/upstream-v0.84.1
 
   - id: psmfd-patch-009
-    status: active
-    upstream_base: v0.83.0
+    status: retired
+    upstream_base: v0.84.1
     advisory: "brace-expansion GHSA-mh99-v99m-4gvg (high, DoS via unbounded expansion length -> OOM crash, <= 5.0.7, patched 5.0.8)"
     severity: high
     reporting: >-
@@ -329,6 +329,6 @@ patches:
       no longer reports GHSA-mh99-v99m-4gvg.
     upstream_issue: null
     upstream_pr: null
-    upstream_fixed_in: null
+    upstream_fixed_in: v0.84.0
     psmfd_commit: null
-    psmfd_retire_commit: null
+    psmfd_retire_commit: sync/upstream-v0.84.1
