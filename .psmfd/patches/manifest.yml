@@ -393,7 +393,7 @@ patches:
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
-    psmfd_commit: null
+    psmfd_commit: 9cd551c1451f8ee3722e752819507129745165b8
     psmfd_retire_commit: null
 
   - id: psmfd-patch-011
@@ -429,7 +429,7 @@ patches:
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
-    psmfd_commit: null
+    psmfd_commit: f7927f5d89f857eb3b709aa6f1ef8214bb45c019
     psmfd_retire_commit: null
 
   - id: psmfd-patch-012
@@ -466,5 +466,5 @@ patches:
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
-    psmfd_commit: null
+    psmfd_commit: b7f1441dd4cbb5f9b3db639d674b517834de6d8f
     psmfd_retire_commit: null
