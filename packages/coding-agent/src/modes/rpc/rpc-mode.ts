@@ -26,6 +26,7 @@ import {
 	waitForRawStdoutBackpressure,
 	writeRawStdout,
 } from "../../core/output-guard.ts";
+import { type SessionInfo, SessionManager } from "../../core/session-manager.ts";
 import { killTrackedDetachedChildren } from "../../utils/shell.ts";
 import { type Theme, theme } from "../interactive/theme/theme.ts";
 import { toJsonEvent } from "../json-event.ts";
@@ -36,6 +37,7 @@ import type {
 	RpcExtensionUIResponse,
 	RpcHello,
 	RpcResponse,
+	RpcSessionInfo,
 	RpcSessionState,
 	RpcSlashCommand,
 } from "./rpc-types.ts";
@@ -57,7 +59,13 @@ export type {
  * breaking change to the framing itself.
  */
 export const RPC_PROTOCOL_VERSION = 1;
-export const RPC_CAPABILITIES: readonly string[] = ["extension_ui", "queue_modes", "fork", "get_commands"];
+export const RPC_CAPABILITIES: readonly string[] = [
+	"extension_ui",
+	"queue_modes",
+	"fork",
+	"get_commands",
+	"list_sessions",
+];
 
 export function helloFrame(): RpcHello {
 	return {
@@ -66,6 +74,40 @@ export function helloFrame(): RpcHello {
 		protocol: RPC_PROTOCOL_VERSION,
 		capabilities: [...RPC_CAPABILITIES],
 	};
+}
+
+/**
+ * Header-fields-only wire projection of a SessionInfo (psmfd-patch-011,
+ * psmfd/pi#54). `allMessagesText` is deliberately dropped — it scales with
+ * transcript size.
+ */
+export function toRpcSessionInfo(info: SessionInfo): RpcSessionInfo {
+	return {
+		path: info.path,
+		id: info.id,
+		cwd: info.cwd,
+		...(info.name !== undefined ? { name: info.name } : {}),
+		...(info.parentSessionPath !== undefined ? { parentSessionPath: info.parentSessionPath } : {}),
+		created: info.created.toISOString(),
+		modified: info.modified.toISOString(),
+		messageCount: info.messageCount,
+		firstMessage: info.firstMessage,
+	};
+}
+
+/**
+ * The list_sessions command body. `sessionDir` is a test seam and not part of
+ * the wire shape.
+ */
+export async function listSessionsForRpc(options: {
+	cwd?: string;
+	all?: boolean;
+	sessionDir?: string;
+}): Promise<RpcSessionInfo[]> {
+	const sessions = options.all
+		? await SessionManager.listAll()
+		: await SessionManager.list(options.cwd ?? process.cwd(), options.sessionDir);
+	return sessions.map(toRpcSessionInfo);
 }
 
 /**
@@ -700,6 +742,11 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 			// =================================================================
 			// Commands (available for invocation via prompt)
 			// =================================================================
+
+			case "list_sessions": {
+				const sessions = await listSessionsForRpc({ cwd: command.cwd, all: command.all });
+				return success(id, "list_sessions", { sessions });
+			}
 
 			case "get_commands": {
 				const commands: RpcSlashCommand[] = [];

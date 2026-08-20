@@ -115,6 +115,8 @@ jobs:
               "packages/coding-agent/src/modes/rpc/rpc-types.ts",
               "packages/coding-agent/src/modes/rpc/rpc-client.ts",
               "packages/coding-agent/test/rpc-hello.test.ts",
+              # psmfd-patch-011 — list_sessions (psmfd/pi#54); rpc/*.ts shared.
+              "packages/coding-agent/test/rpc-list-sessions.test.ts",
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
