@@ -117,6 +117,8 @@ jobs:
               "packages/coding-agent/test/rpc-hello.test.ts",
               # psmfd-patch-011 — list_sessions (psmfd/pi#54); rpc/*.ts shared.
               "packages/coding-agent/test/rpc-list-sessions.test.ts",
+              # psmfd-patch-012 — session_start dialog fix (psmfd/pi#57).
+              "packages/coding-agent/test/rpc-session-start-dialog.test.ts",
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),

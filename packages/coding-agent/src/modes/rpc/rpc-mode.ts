@@ -150,6 +150,25 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 		{ resolve: (value: any) => void; reject: (error: Error) => void }
 	>();
 
+	/** Resolve an extension_ui_response against its pending request. */
+	const tryResolveExtensionUIResponse = (parsed: unknown): boolean => {
+		if (
+			typeof parsed !== "object" ||
+			parsed === null ||
+			!("type" in parsed) ||
+			parsed.type !== "extension_ui_response"
+		) {
+			return false;
+		}
+		const response = parsed as RpcExtensionUIResponse;
+		const pending = pendingExtensionRequests.get(response.id);
+		if (pending) {
+			pendingExtensionRequests.delete(response.id);
+			pending.resolve(response);
+		}
+		return true;
+	};
+
 	// Shutdown request flag
 	let shutdownRequested = false;
 	let shuttingDown = false;
@@ -446,6 +465,37 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 			signalCleanupHandlers.push(() => process.off(signal, handler));
 		}
 	};
+
+	// psmfd-patch-012 (psmfd/pi#57): attach the stdin reader BEFORE extensions
+	// bind (session_start), so a dialog awaited inside a session_start hook can
+	// be answered — and so open stdin keeps the event loop alive instead of the
+	// process silently exiting 0 with a pending dialog. Until the command loop
+	// below is ready, extension_ui_response lines resolve immediately and every
+	// other line (commands, malformed input) plus any EOF is buffered and
+	// replayed in arrival order once ready.
+	const preReadyLines: string[] = [];
+	let preReadyEof = false;
+	let deliverLine = (line: string): void => {
+		try {
+			if (tryResolveExtensionUIResponse(JSON.parse(line))) {
+				return;
+			}
+		} catch {
+			// Malformed pre-ready input: buffered so its parse-error response is
+			// emitted in order by the ready command loop.
+		}
+		preReadyLines.push(line);
+	};
+	let deliverEof = (): void => {
+		preReadyEof = true;
+	};
+	const detachJsonl = attachJsonlLineReader(process.stdin, (line) => {
+		deliverLine(line);
+	});
+	const onStdinEnd = () => {
+		deliverEof();
+	};
+	process.stdin.on("end", onStdinEnd);
 
 	await rebindSession();
 	registerSignalHandlers();
@@ -835,18 +885,7 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 		}
 
 		// Handle extension UI responses
-		if (
-			typeof parsed === "object" &&
-			parsed !== null &&
-			"type" in parsed &&
-			parsed.type === "extension_ui_response"
-		) {
-			const response = parsed as RpcExtensionUIResponse;
-			const pending = pendingExtensionRequests.get(response.id);
-			if (pending) {
-				pendingExtensionRequests.delete(response.id);
-				pending.resolve(response);
-			}
+		if (tryResolveExtensionUIResponse(parsed)) {
 			return;
 		}
 
@@ -870,20 +909,25 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 		}
 	};
 
-	const onInputEnd = () => {
+	detachInput = () => {
+		detachJsonl();
+		process.stdin.off("end", onStdinEnd);
+	};
+
+	// Command loop ready: swap in the real handlers, then replay anything that
+	// arrived during startup in its original order (psmfd-patch-012).
+	deliverLine = (line: string) => {
+		void handleInputLine(line);
+	};
+	deliverEof = () => {
 		void shutdown();
 	};
-	process.stdin.on("end", onInputEnd);
-
-	detachInput = (() => {
-		const detachJsonl = attachJsonlLineReader(process.stdin, (line) => {
-			void handleInputLine(line);
-		});
-		return () => {
-			detachJsonl();
-			process.stdin.off("end", onInputEnd);
-		};
-	})();
+	for (const line of preReadyLines.splice(0)) {
+		deliverLine(line);
+	}
+	if (preReadyEof) {
+		deliverEof();
+	}
 
 	// Keep process alive forever
 	return new Promise(() => {});
