@@ -13,7 +13,15 @@ import type { CompactionResult } from "../../core/compaction/index.ts";
 import type { SessionEntry, SessionTreeNode } from "../../core/session-manager.ts";
 import type { JsonAgentSessionEvent } from "../json-event.ts";
 import { attachJsonlLineReader, serializeJsonLine } from "./jsonl.ts";
-import type { RpcCommand, RpcResponse, RpcSessionState, RpcSlashCommand } from "./rpc-types.ts";
+import type { RpcCommand, RpcHello, RpcResponse, RpcSessionState, RpcSlashCommand } from "./rpc-types.ts";
+
+/**
+ * Hello-based readiness (psmfd-patch-010, psmfd/pi#56): the highest RPC
+ * protocol this client speaks, and the grace window after which a child that
+ * never says hello is treated as a pre-hello pin (legacy path).
+ */
+const SUPPORTED_RPC_PROTOCOL = 1;
+const HELLO_GRACE_MS = 250;
 
 // ============================================================================
 // Types
@@ -38,6 +46,12 @@ export interface RpcClientOptions {
 	model?: string;
 	/** Additional CLI arguments */
 	args?: string[];
+	/**
+	 * How long start() waits for the hello line before treating the child as
+	 * a pre-hello pin (default: 250ms). Raise it when child startup latency
+	 * is expected (e.g. loaded CI machines).
+	 */
+	helloGraceMs?: number;
 }
 
 export interface ModelInfo {
@@ -62,6 +76,8 @@ export class RpcClient {
 	private requestId = 0;
 	private stderr = "";
 	private exitError: Error | null = null;
+	private helloInfo: RpcHello | null = null;
+	private helloWaiter: (() => void) | null = null;
 	private options: RpcClientOptions;
 
 	constructor(options: RpcClientOptions = {}) {
@@ -77,6 +93,7 @@ export class RpcClient {
 		}
 
 		this.exitError = null;
+		this.helloInfo = null;
 
 		const cliPath = this.options.cliPath ?? "dist/cli.js";
 		const args = ["--mode", "rpc"];
@@ -129,14 +146,43 @@ export class RpcClient {
 			this.handleLine(line);
 		});
 
-		// Wait a moment for process to initialize
-		await new Promise((resolve) => setTimeout(resolve, 100));
+		// Hello is the ready gate; a child that never says hello within the
+		// grace window is a pre-hello pin and gets the legacy fixed wait.
+		await new Promise<void>((resolve) => {
+			const timer = setTimeout(resolve, this.options.helloGraceMs ?? HELLO_GRACE_MS);
+			this.helloWaiter = () => {
+				clearTimeout(timer);
+				resolve();
+			};
+		});
+		this.helloWaiter = null;
+
+		// Read through a local: handleLine assigns helloInfo from another call
+		// path, so control-flow narrowing from the `= null` above is wrong here.
+		const hello = this.helloInfo as RpcHello | null;
+		if (hello && hello.protocol > SUPPORTED_RPC_PROTOCOL) {
+			const error = new Error(
+				`Agent speaks RPC protocol ${hello.protocol}; this client supports ${SUPPORTED_RPC_PROTOCOL}. ` +
+					`Upgrade the client or pin an older agent.`,
+			);
+			this.exitError = error;
+			await this.stop();
+			throw error;
+		}
 
 		if (this.process.exitCode !== null) {
 			const error = this.exitError ?? this.createProcessExitError(this.process.exitCode, this.process.signalCode);
 			this.exitError = error;
 			throw error;
 		}
+	}
+
+	/**
+	 * The hello frame the agent announced at spawn, or null for a pre-hello
+	 * pin (or before start() completes).
+	 */
+	get hello(): RpcHello | null {
+		return this.helloInfo;
 	}
 
 	/**
@@ -508,6 +554,14 @@ export class RpcClient {
 	private handleLine(line: string): void {
 		try {
 			const data = JSON.parse(line);
+
+			// Handshake frame, not a session event: record it and release the
+			// ready gate in start().
+			if (data.type === "hello") {
+				this.helloInfo = data as RpcHello;
+				this.helloWaiter?.();
+				return;
+			}
 
 			// Check if it's a response to a pending request
 			if (data.type === "response" && data.id && this.pendingRequests.has(data.id)) {
