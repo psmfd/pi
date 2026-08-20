@@ -1,21 +1,36 @@
-# PSMFD security-patch manifest
+# PSMFD patch manifest
 #
-# Records deliberate, temporary divergences from upstream-owned source carried
-# by this mirror under the conditional security-patch divergence policy
-# (ADR-0041, pi_config). A patch is listed here ONLY when no upstream fix
-# exists or is in flight for a security finding (CodeQL/code-scanning alert or
-# CVE/advisory). Each entry's `patched_paths` must be kept in lockstep with the
-# allowlist in `.psmfd/overlay-allowlist.txt` and the `SECURITY_PATCH_PATHS`
-# set in `.github/workflows/psmfd-zero-divergence.yml`.
+# Records deliberate divergences from upstream-owned source carried by this
+# mirror under the two-class patch-train policy (pi_config ADR-0138, which
+# corrected ADR-0136 and superseded security-only ADR-0041):
 #
-# Lifecycle: active -> (upstream ships its own fix) -> retired. Retirement
-# happens on the `sync/upstream-*` import that carries the upstream fix:
-# rebase-drop the PSMFD-Patch commit, set status: retired + upstream_fixed_in +
-# psmfd_retire_commit, and remove the path(s) from the allowlist and guard.
+#   class: security    (S-class) — no upstream fix exists or is in flight for a
+#                      security finding (CodeQL/code-scanning alert or
+#                      CVE/advisory). Cap-exempt but scope-bound (ADR-0138 S6).
+#   class: capability  (C-class) — a runtime seam/primitive admitted by a
+#                      generation ADR (second generation: pi_config ADR-0145).
+#                      Subject to the ADR-0138 caps, evaluated at every sync.
+#
+# Each entry's `patched_paths` must be kept in lockstep with the allowlist in
+# `.psmfd/overlay-allowlist.txt` and the class-matching set
+# (`SECURITY_PATCH_PATHS` / `C_CLASS_PATCH_PATHS`) in
+# `.github/workflows/psmfd-zero-divergence.yml` and
+# `.github/workflows/psmfd-divergence-detect.yml`.
+#
+# Lifecycle: active -> (retirement trigger) -> retired. The trigger is
+# class-specific: S-class retires when upstream ships its own fix
+# (`upstream_fixed_in`); C-class retires when upstream adopts an equivalent
+# capability (`upstream_adopted_in`) or the patch is dropped. Retirement is a
+# merge-time allowlist drop on the `sync/upstream-*` import that carries the
+# trigger (ADR-0138 §1 — never a rebase): set status: retired + the
+# class-appropriate retirement field + psmfd_retire_commit, and remove the
+# path(s) from the allowlist and both guard workflows between the merge and
+# resolve steps. The PSMFD-Patch commit stays in history as the audit record.
 #
 # Fields:
 #   id                 short stable patch identifier (also the PSMFD-Patch: trailer value)
 #   status             active | pending | retired
+#   class              security (S-class) | capability (C-class)
 #   upstream_base      upstream version the patch is applied on top of
 #   advisory           CVE / GHSA / CodeQL rule + alert reference
 #   severity           upstream-reported severity
@@ -26,13 +41,15 @@
 #   evidence           how the fix is proven (regression test / resolved version)
 #   upstream_issue     upstream issue URL once filed (null until then)
 #   upstream_pr        upstream PR URL once opened (null until then)
-#   upstream_fixed_in  upstream version that ships the fix; setting this triggers retirement
+#   upstream_fixed_in  upstream version that ships the fix; setting this triggers retirement (S-class)
+#   upstream_adopted_in  upstream version that ships an equivalent capability; the C-class retirement trigger
 #   psmfd_commit       commit that introduces the patch on mirror main (filled on merge)
 #   psmfd_retire_commit commit that retires the patch (filled on retirement)
 
 patches:
   - id: psmfd-patch-001
     status: active
+    class: security
     upstream_base: v0.84.2
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
@@ -68,6 +85,7 @@ patches:
 
   - id: psmfd-patch-002
     status: retired
+    class: security
     upstream_base: v0.79.5
     advisory: "CVE-2026-47429 / GHSA-5xrq-8626-4rwp"
     severity: critical
@@ -97,6 +115,7 @@ patches:
 
   - id: psmfd-patch-003
     status: active
+    class: security
     upstream_base: v0.84.2
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p; GHSA-395f-4hp3-45gv (quadratic DoS in parse(), <= 1.8.4, published 2026-07-20)"
     severity: critical
@@ -128,6 +147,7 @@ patches:
 
   - id: psmfd-patch-004
     status: retired
+    class: security
     upstream_base: v0.79.5
     advisory: "GHSA-gv7w-rqvm-qjhr (high), GHSA-g7r4-m6w7-qqqr (low)"
     severity: high
@@ -154,6 +174,7 @@ patches:
 
   - id: psmfd-patch-005
     status: active
+    class: security
     upstream_base: v0.84.2
     advisory: "CodeQL js/shell-command-constructed-from-input (psmfd/pi alerts 33-37)"
     severity: medium
@@ -193,6 +214,7 @@ patches:
 
   - id: psmfd-patch-006
     status: retired
+    class: security
     upstream_base: v0.79.5
     advisory: "GHSA-vmh5-mc38-953g (high), GHSA-38rv-x7px-6hhq (high), GHSA-pr7r-676h-xcf6 (medium)"
     severity: high
@@ -226,6 +248,7 @@ patches:
 
   - id: psmfd-patch-007
     status: retired
+    class: security
     upstream_base: v0.79.5
     advisory: "protobufjs GHSA-wcpc-wj8m-hjx6 (high), GHSA-f38q-mgvj-vph7 (medium); ws GHSA-96hv-2xvq-fx4p (high); vite GHSA-fx2h-pf6j-xcff (high), GHSA-v6wh-96g9-6wx3 (medium)"
     severity: high
@@ -265,6 +288,7 @@ patches:
 
   - id: psmfd-patch-008
     status: retired
+    class: security
     upstream_base: v0.84.1
     advisory: "shell-quote GHSA-395f-4hp3-45gv (high, quadratic DoS in parse(), <= 1.8.4, patched 1.9.0, published 2026-07-20)"
     severity: high
@@ -298,6 +322,7 @@ patches:
 
   - id: psmfd-patch-009
     status: retired
+    class: security
     upstream_base: v0.84.1
     advisory: "brace-expansion GHSA-mh99-v99m-4gvg (high, DoS via unbounded expansion length -> OOM crash, <= 5.0.7, patched 5.0.8)"
     severity: high

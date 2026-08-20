@@ -91,6 +91,15 @@ jobs:
               # shipped the fixes in v0.79.8); their paths removed here in lockstep
               # with .psmfd/overlay-allowlist.txt and the manifest.
           }
+          # Capability-patch exemptions (C-class, pi_config ADR-0138/ADR-0145):
+          # upstream-owned paths carrying a manifest-tracked PSMFD capability
+          # patch admitted by a generation ADR. Persist until upstream adopts
+          # an equivalent capability (manifest `upstream_adopted_in`) or the
+          # patch is dropped. Keep in lockstep with .psmfd/overlay-allowlist.txt
+          # and the manifest (`class: capability`), exactly like
+          # SECURITY_PATCH_PATHS above. Same trust model: allowlist data only,
+          # every change maintainer-reviewed before merge.
+          C_CLASS_PATCH_PATHS = set()
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
               re.compile(r"^\.github/workflows/psmfd-[^/]+\.ya?ml$"),
@@ -99,7 +108,7 @@ jobs:
           )
 
           def allowed(path: str) -> bool:
-              if path in EXACT or path in SECURITY_PATCH_PATHS:
+              if path in EXACT or path in SECURITY_PATCH_PATHS or path in C_CLASS_PATCH_PATHS:
                   return True
               return any(regex.match(path) for regex in REGEXES)
 
