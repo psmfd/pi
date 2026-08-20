@@ -152,14 +152,15 @@ allowed-path bootstrap PR while the repository remained private.
 The zero-divergence guard skips path enforcement only for same-repository PRs
 from `sync/upstream-*` branches authored by the configured trusted sync actor.
 That bypass is limited to upstream synchronization and must not be used to carry
-behavioral source patches in the mirror.
+behavioral source patches in the mirror — those go through the manifest-tracked
+patch classes below, in ordinary maintainer-reviewed PRs the guard fully checks.
 
 ## Security-patch divergence
 
 Distinct from the sync bypass above, the mirror may carry a temporary,
 manifest-tracked patch to upstream-owned source for a security finding that has
-no upstream fix or fix in flight (ADR-0041, `pi_config`). This is the only
-sanctioned reason to modify upstream-owned files outside a sync.
+no upstream fix or fix in flight (S-class; ADR-0041 as carried forward by
+ADR-0138, `pi_config`).
 
 - Eligibility: a CodeQL/code-scanning alert or a CVE/advisory (not a routine
   version refresh), with no merged upstream commit and no open upstream PR
@@ -182,7 +183,33 @@ sanctioned reason to modify upstream-owned files outside a sync.
   new to install waits for the age window.
 - Retirement: when upstream ships its own fix, the patch is dropped on the
   `sync/upstream-*` import that carries it, the manifest entry is marked
-  `retired`, and the path is removed from the allowlist and guard.
+  `retired`, and the path is removed from the allowlist and guard — a
+  merge-time allowlist drop between the merge and resolve steps, never a
+  rebase (ADR-0138 §1).
+
+## Capability-patch divergence (C-class)
+
+The second sanctioned divergence class (ADR-0136/ADR-0138, `pi_config`): a
+runtime seam, primitive, or enforcement point the mirror carries ahead of
+upstream, admitted per generation by a generation ADR (second generation:
+ADR-0145 — the RPC `hello` line, `list_sessions`, and the spawn-time-dialog
+fix). Same mechanism as S-class — manifest entry (`class: capability`),
+lockstep `.psmfd/overlay-allowlist.txt` + `C_CLASS_PATCH_PATHS` in both guard
+workflows, `PSMFD-Patch` trailer, maintainer review as the binding control —
+with these differences:
+
+- Eligibility is policy-gated, not advisory-gated: ADR-0138's C-class
+  conditions (mechanism-not-policy, extension-form-insufficient, soak or
+  generation-ADR enumeration, caps, bookkeeping, evidence), recorded in the
+  admitting generation ADR.
+- Caps are evaluated at every sync in the evidence block: ≤ 6 active C-class
+  patches, ≤ 2000 net changed lines, ≤ 25 distinct upstream files. A breach
+  stops the sync (ADR-0138 §2).
+- Any sync conflict resolved `--ours` on a C-class path records the discarded
+  upstream diff in the sync evidence block (drift debt, ADR-0138 §4).
+- Retirement trigger is upstream *adoption* of an equivalent capability
+  (manifest `upstream_adopted_in`) or the patch being dropped/upstreamed —
+  same merge-time allowlist-drop mechanics as S-class.
 
 ## Upstream reporting gate
 

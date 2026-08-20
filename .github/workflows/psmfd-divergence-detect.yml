@@ -106,6 +106,9 @@ jobs:
               # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync; their
               # paths are intentionally absent (lockstep with the guard + manifest).
           }
+          # C-class capability patches (pi_config ADR-0138/ADR-0145);
+          # lockstep with the guard, the manifest, and the allowlist.
+          C_CLASS_PATCH_PATHS = set()
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
               re.compile(r"^\.github/workflows/psmfd-[^/]+\.ya?ml$"),
@@ -114,7 +117,7 @@ jobs:
           )
 
           def allowed(path: str) -> bool:
-              if path in EXACT or path in SECURITY_PATCH_PATHS:
+              if path in EXACT or path in SECURITY_PATCH_PATHS or path in C_CLASS_PATCH_PATHS:
                   return True
               return any(r.match(path) for r in REGEXES)
 
