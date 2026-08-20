@@ -431,3 +431,40 @@ patches:
     upstream_adopted_in: null
     psmfd_commit: null
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-012
+    status: active
+    class: capability
+    upstream_base: v0.84.2
+    advisory: null
+    severity: null
+    reporting: >-
+      Not applicable (C-class). Upstream contribution planned local-first per
+      pi_config ADR-0138/ADR-0145, from the fork once soaked; the fix also
+      closes a silent-failure mode worth reporting with the PR.
+    description: >-
+      session_start dialog fix (fork gap psmfd/pi#57, admitted by pi_config
+      ADR-0145): RPC mode attached its stdin reader only after session_start
+      hooks completed, so a dialog awaited there was unanswerable - the hook
+      deadlocked and pi exited 0 silently once the event loop drained. The
+      stdin reader now attaches before extensions bind: pre-ready
+      extension_ui_response lines resolve immediately, all other input and
+      any EOF is buffered and replayed in arrival order once the command loop
+      is ready, and open stdin keeps the event loop alive.
+    patched_paths:
+      - packages/coding-agent/src/modes/rpc/rpc-mode.ts
+      - packages/coding-agent/test/rpc-session-start-dialog.test.ts
+    evidence: >-
+      Keyless integration regression test/rpc-session-start-dialog.test.ts
+      (red-first against the pre-patch build: pi exits 0 mid-round-trip -
+      the exact psmfd/pi#57 failure; green with the patch: the confirm is
+      answered inside session_start, the extension observes the answer, and
+      stdin EOF still exits 0). Self-skips when dist/ is not built. Consumer
+      proof: FingerTrap's session-start-dialog-exit golden flips on
+      re-record against this pin (psmfd/FingerTrap#147 retires its
+      treat-as-fatal supervisor policy).
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
