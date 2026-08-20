@@ -14,6 +14,23 @@ import type { SessionEntry, SessionTreeNode } from "../../core/session-manager.t
 import type { SourceInfo } from "../../core/source-info.ts";
 
 // ============================================================================
+// Hello (stdout, first line)
+// ============================================================================
+
+/**
+ * First stdout line in RPC mode (psmfd-patch-010, psmfd/pi#56): version,
+ * protocol, and capability advertisement, emitted before the stdin reader
+ * attaches. Hosts gate readiness on it; capability additions never require a
+ * `protocol` bump.
+ */
+export interface RpcHello {
+	type: "hello";
+	piVersion: string;
+	protocol: number;
+	capabilities: string[];
+}
+
+// ============================================================================
 // RPC Commands (stdin)
 // ============================================================================
 

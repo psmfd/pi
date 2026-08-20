@@ -357,3 +357,41 @@ patches:
     upstream_fixed_in: v0.84.0
     psmfd_commit: null
     psmfd_retire_commit: sync/upstream-v0.84.1
+
+  - id: psmfd-patch-010
+    status: active
+    class: capability
+    upstream_base: v0.84.2
+    advisory: null
+    severity: null
+    reporting: >-
+      Not applicable (C-class). Upstream contribution is planned local-first
+      per pi_config ADR-0138/ADR-0145: PR from the fork once soaked in
+      FingerTrap daily use, with the recorded-golden transcripts as evidence.
+    description: >-
+      RPC hello line (fork gap psmfd/pi#56, admitted by pi_config ADR-0145):
+      RPC mode's first stdout write is
+      {"type":"hello","piVersion":...,"protocol":1,"capabilities":[...]},
+      emitted before extension binding and before the stdin reader attaches.
+      Hosts gate readiness on it instead of sleep-and-probe; capability
+      additions are advertised, never probed, and never bump `protocol`.
+      The reference client (rpc-client.ts) uses hello as its ready gate with
+      a grace-window legacy fallback for pre-hello pins and a typed refusal
+      naming both versions when `protocol` exceeds what it supports.
+    patched_paths:
+      - packages/coding-agent/src/modes/rpc/rpc-mode.ts
+      - packages/coding-agent/src/modes/rpc/rpc-types.ts
+      - packages/coding-agent/src/modes/rpc/rpc-client.ts
+      - packages/coding-agent/test/rpc-hello.test.ts
+    evidence: >-
+      Keyless regression suite test/rpc-hello.test.ts (red-first: 4/4 failed
+      before the patch, 4/4 pass with it) covers the frame shape and the
+      client's three readiness paths (hello, legacy grace, protocol refusal).
+      Consumer proof: FingerTrap's #139 record-replay goldens re-recorded
+      against this pin show the hello line as the first frame of every
+      transcript (psmfd/FingerTrap docs/rpc-contract.md pin-bump ritual).
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

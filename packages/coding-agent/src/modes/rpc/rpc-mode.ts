@@ -12,6 +12,7 @@
  */
 
 import * as crypto from "node:crypto";
+import { VERSION } from "../../config.ts";
 import type { AgentSessionRuntime } from "../../core/agent-session-runtime.ts";
 import type {
 	ExtensionUIContext,
@@ -33,6 +34,7 @@ import type {
 	RpcCommand,
 	RpcExtensionUIRequest,
 	RpcExtensionUIResponse,
+	RpcHello,
 	RpcResponse,
 	RpcSessionState,
 	RpcSlashCommand,
@@ -43,9 +45,28 @@ export type {
 	RpcCommand,
 	RpcExtensionUIRequest,
 	RpcExtensionUIResponse,
+	RpcHello,
 	RpcResponse,
 	RpcSessionState,
 } from "./rpc-types.ts";
+
+/**
+ * The RPC protocol version and capability advertisement carried by the hello
+ * line (psmfd-patch-010, psmfd/pi#56). Capability additions are advertised
+ * here and never require a `protocol` bump; `protocol` only moves on a
+ * breaking change to the framing itself.
+ */
+export const RPC_PROTOCOL_VERSION = 1;
+export const RPC_CAPABILITIES: readonly string[] = ["extension_ui", "queue_modes", "fork", "get_commands"];
+
+export function helloFrame(): RpcHello {
+	return {
+		type: "hello",
+		piVersion: VERSION,
+		protocol: RPC_PROTOCOL_VERSION,
+		capabilities: [...RPC_CAPABILITIES],
+	};
+}
 
 /**
  * Run in RPC mode.
@@ -60,6 +81,11 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 	const output = (obj: RpcResponse | RpcExtensionUIRequest | object) => {
 		writeRawStdout(serializeJsonLine(obj));
 	};
+
+	// The hello line MUST stay the first stdout write: hosts treat it as the
+	// ready signal, and it precedes extension binding so no session_start
+	// output can beat it.
+	output(helloFrame());
 
 	const success = <T extends RpcCommand["type"]>(
 		id: string | undefined,

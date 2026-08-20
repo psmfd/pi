@@ -108,7 +108,14 @@ jobs:
           }
           # C-class capability patches (pi_config ADR-0138/ADR-0145);
           # lockstep with the guard, the manifest, and the allowlist.
-          C_CLASS_PATCH_PATHS = set()
+          C_CLASS_PATCH_PATHS = {
+              # psmfd-patch-010 — RPC hello line (psmfd/pi#56); the rpc/*.ts
+              # paths will be shared with psmfd-patch-011/012.
+              "packages/coding-agent/src/modes/rpc/rpc-mode.ts",
+              "packages/coding-agent/src/modes/rpc/rpc-types.ts",
+              "packages/coding-agent/src/modes/rpc/rpc-client.ts",
+              "packages/coding-agent/test/rpc-hello.test.ts",
+          }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
               re.compile(r"^\.github/workflows/psmfd-[^/]+\.ya?ml$"),

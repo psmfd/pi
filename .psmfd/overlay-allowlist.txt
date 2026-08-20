@@ -47,3 +47,16 @@ packages/coding-agent/examples/extensions/sandbox/package-lock.json
 # DOWNGRADED brace-expansion. package-lock.json, npm-shrinkwrap.json, and
 # install-lock/package-lock.json are removed from this allowlist and
 # SECURITY_PATCH_PATHS in lockstep.
+
+# Capability-patch exemptions (C-class, pi_config ADR-0138/ADR-0145) —
+# upstream-owned paths carrying a manifest-tracked PSMFD capability patch.
+# Persist until upstream adopts an equivalent capability or the patch is
+# dropped. Lockstep with the manifest and C_CLASS_PATCH_PATHS in both guard
+# workflows.
+# psmfd-patch-010 — RPC hello line (psmfd/pi#56).
+# NOTE: the three rpc/*.ts paths will be SHARED with psmfd-patch-011/012;
+# do not remove while any owner is active.
+packages/coding-agent/src/modes/rpc/rpc-mode.ts
+packages/coding-agent/src/modes/rpc/rpc-types.ts
+packages/coding-agent/src/modes/rpc/rpc-client.ts
+packages/coding-agent/test/rpc-hello.test.ts
