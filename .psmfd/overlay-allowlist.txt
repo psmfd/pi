@@ -60,3 +60,6 @@ packages/coding-agent/src/modes/rpc/rpc-mode.ts
 packages/coding-agent/src/modes/rpc/rpc-types.ts
 packages/coding-agent/src/modes/rpc/rpc-client.ts
 packages/coding-agent/test/rpc-hello.test.ts
+# psmfd-patch-011 — list_sessions RPC command (psmfd/pi#54); the rpc/*.ts
+# paths above are shared owners.
+packages/coding-agent/test/rpc-list-sessions.test.ts

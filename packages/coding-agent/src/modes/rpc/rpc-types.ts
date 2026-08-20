@@ -30,6 +30,24 @@ export interface RpcHello {
 	capabilities: string[];
 }
 
+/**
+ * Session metadata on the wire (psmfd-patch-011, psmfd/pi#54): the
+ * SessionInfo header fields only. `allMessagesText` is deliberately not
+ * carried — it scales with transcript size, and pickers need `firstMessage`
+ * at most. Dates are ISO-8601 strings.
+ */
+export interface RpcSessionInfo {
+	path: string;
+	id: string;
+	cwd: string;
+	name?: string;
+	parentSessionPath?: string;
+	created: string;
+	modified: string;
+	messageCount: number;
+	firstMessage: string;
+}
+
 // ============================================================================
 // RPC Commands (stdin)
 // ============================================================================
@@ -87,7 +105,10 @@ export type RpcCommand =
 	| { id?: string; type: "get_messages" }
 
 	// Commands (available for invocation via prompt)
-	| { id?: string; type: "get_commands" };
+	| { id?: string; type: "get_commands" }
+
+	// Sessions (psmfd-patch-011, psmfd/pi#54)
+	| { id?: string; type: "list_sessions"; cwd?: string; all?: boolean };
 
 // ============================================================================
 // RPC Slash Command (for get_commands response)
@@ -242,6 +263,13 @@ export type RpcResponse =
 			command: "get_commands";
 			success: true;
 			data: { commands: RpcSlashCommand[] };
+	  }
+	| {
+			id?: string;
+			type: "response";
+			command: "list_sessions";
+			success: true;
+			data: { sessions: RpcSessionInfo[] };
 	  }
 
 	// Error response (any command can fail)

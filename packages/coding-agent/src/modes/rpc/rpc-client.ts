@@ -13,7 +13,14 @@ import type { CompactionResult } from "../../core/compaction/index.ts";
 import type { SessionEntry, SessionTreeNode } from "../../core/session-manager.ts";
 import type { JsonAgentSessionEvent } from "../json-event.ts";
 import { attachJsonlLineReader, serializeJsonLine } from "./jsonl.ts";
-import type { RpcCommand, RpcHello, RpcResponse, RpcSessionState, RpcSlashCommand } from "./rpc-types.ts";
+import type {
+	RpcCommand,
+	RpcHello,
+	RpcResponse,
+	RpcSessionInfo,
+	RpcSessionState,
+	RpcSlashCommand,
+} from "./rpc-types.ts";
 
 /**
  * Hello-based readiness (psmfd-patch-010, psmfd/pi#56): the highest RPC
@@ -489,6 +496,14 @@ export class RpcClient {
 	async getCommands(): Promise<RpcSlashCommand[]> {
 		const response = await this.send({ type: "get_commands" });
 		return this.getData<{ commands: RpcSlashCommand[] }>(response).commands;
+	}
+
+	/**
+	 * List sessions (psmfd-patch-011, psmfd/pi#54): header fields only.
+	 */
+	async listSessions(options?: { cwd?: string; all?: boolean }): Promise<{ sessions: RpcSessionInfo[] }> {
+		const response = await this.send({ type: "list_sessions", cwd: options?.cwd, all: options?.all });
+		return this.getData<{ sessions: RpcSessionInfo[] }>(response);
 	}
 
 	// =========================================================================
