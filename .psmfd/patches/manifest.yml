@@ -390,6 +390,9 @@ patches:
       Consumer proof: FingerTrap's #139 record-replay goldens re-recorded
       against this pin show the hello line as the first frame of every
       transcript (psmfd/FingerTrap docs/rpc-contract.md pin-bump ritual).
+      v0.85.1 re-application (psmfd/pi#64 review): upstream's new clear_queue
+      command is advertised in RPC_CAPABILITIES and the hello test asserts the
+      literal capability list so an unadvertised command fails red.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null

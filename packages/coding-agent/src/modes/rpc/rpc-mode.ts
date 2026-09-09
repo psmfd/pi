@@ -65,6 +65,7 @@ export const RPC_CAPABILITIES: readonly string[] = [
 	"fork",
 	"get_commands",
 	"list_sessions",
+	"clear_queue",
 ];
 
 export function helloFrame(): RpcHello {
