@@ -133,6 +133,7 @@ jobs:
           # Keep this list in sync with the root package.json "build" script.
           # Upstream v0.84.0 added packages/telemetry (imported by ai and agent)
           # plus protocol/client/server; omitting any of them fails at tsgo time.
+          (cd packages/chord && npm run build)
           (cd packages/tui && npm run build)
           (cd packages/telemetry && npm run build)
           (cd packages/ai && npx tsgo -p tsconfig.build.json)
