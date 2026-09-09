@@ -80,7 +80,7 @@ patches:
     upstream_issue: "https://github.com/psmfd/pi/issues/7"
     upstream_pr: null
     upstream_fixed_in: null
-    psmfd_commit: null
+    psmfd_commit: dfd043fbee1da2627c3a3f47414e04ab12b0ed1f
     psmfd_retire_commit: null
 
   - id: psmfd-patch-002
@@ -142,7 +142,7 @@ patches:
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
-    psmfd_commit: null
+    psmfd_commit: ad5a9f08c5f44926f39caa8ccb01b75bc81c9fa6
     psmfd_retire_commit: null
 
   - id: psmfd-patch-004
@@ -209,7 +209,7 @@ patches:
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
-    psmfd_commit: null
+    psmfd_commit: fc2b20824d038e93296dfbf803d7773506984d4c
     psmfd_retire_commit: null
 
   - id: psmfd-patch-006
