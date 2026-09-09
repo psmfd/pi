@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { VERSION } from "../src/config.ts";
 import { RpcClient } from "../src/modes/rpc/rpc-client.ts";
-import { helloFrame, RPC_CAPABILITIES, RPC_PROTOCOL_VERSION } from "../src/modes/rpc/rpc-mode.ts";
+import { helloFrame, RPC_PROTOCOL_VERSION } from "../src/modes/rpc/rpc-mode.ts";
 
 // PSMFD-Patch: psmfd-patch-010 (psmfd/pi#56) — the RPC hello line and the
 // reference client's hello-based ready gate. Keyless: the child side is a
@@ -32,10 +32,17 @@ describe("hello frame", () => {
 		expect(frame.type).toBe("hello");
 		expect(frame.piVersion).toBe(VERSION);
 		expect(frame.protocol).toBe(RPC_PROTOCOL_VERSION);
-		expect(frame.capabilities).toEqual([...RPC_CAPABILITIES]);
-		for (const cap of ["extension_ui", "queue_modes", "fork", "get_commands"]) {
-			expect(frame.capabilities).toContain(cap);
-		}
+		// Literal list on purpose: a new upstream command must be advertised here
+		// deliberately, never inherited silently from the constant (v0.85.1 sync
+		// review: clear_queue was wired but unadvertised).
+		expect(frame.capabilities).toEqual([
+			"extension_ui",
+			"queue_modes",
+			"fork",
+			"get_commands",
+			"list_sessions",
+			"clear_queue",
+		]);
 	});
 });
 
