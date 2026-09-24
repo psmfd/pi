@@ -110,6 +110,9 @@ jobs:
               "packages/coding-agent/test/rpc-list-sessions.test.ts",
               # psmfd-patch-012 — session_start dialog fix (psmfd/pi#57).
               "packages/coding-agent/test/rpc-session-start-dialog.test.ts",
+              # psmfd-patch-013 — cache-warmer failure recovery (psmfd/pi#74).
+              "packages/coding-agent/src/core/cache-warmer.ts",
+              "packages/coding-agent/test/cache-warmer.test.ts",
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),

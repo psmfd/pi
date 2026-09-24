@@ -471,3 +471,38 @@ patches:
     upstream_adopted_in: null
     psmfd_commit: b7f1441dd4cbb5f9b3db639d674b517834de6d8f
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-013
+    status: active
+    class: capability
+    upstream_base: v0.87.1
+    advisory: null
+    severity: null
+    reporting: >-
+      Not applicable (C-class correctness fix). No upstream submission made;
+      upstream contributions remain human-led. Retire when upstream stops
+      refreshing after a failed warm request or the patch is dropped.
+    description: >-
+      Cache-warmer failure recovery (psmfd/pi#74): a failed refresh scheduled
+      another attempt a full delay later despite not renewing the cache TTL.
+      For a five-minute cache, failures at 4m30s caused a replay at 9m,
+      potentially paying for a cache miss. Stop warming on error/aborted
+      results or exceptions until a new real request starts a run. A stale
+      failure must not stop a replacement run. Explicitly admitted by the
+      maintainer for PR #74; see the narrow exception in security-baseline.md.
+      This changes the core timer lifecycle, which an extension decision
+      hook cannot reliably repair because it does not receive refresh results.
+    patched_paths:
+      - packages/coding-agent/src/core/cache-warmer.ts
+      - packages/coding-agent/test/cache-warmer.test.ts
+    evidence: >-
+      Four regressions fail before the fix (two requests instead of one) and
+      pass after it: provider error, aborted result, rejected promise, and
+      synchronous result exception. Tests also cover restarting on a new
+      request, stale rejection isolation, and repeated successful refreshes.
+      All 14 cache-warmer tests pass. No paid-provider or consumer soak claimed.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

@@ -338,18 +338,23 @@ export class CacheWarmer {
 				})
 				.result();
 			if (!this.validateRun(run)) return;
-			if (message.stopReason !== "error" && message.stopReason !== "aborted") {
-				const entry = this.sessionManager.appendUsage(
-					"cache_warm",
-					message.provider,
-					message.responseModel ?? message.model,
-					message.usage,
-					extensionOverride ? "extension override" : undefined,
-				);
-				this.onWarmed?.(entry);
+			if (message.stopReason === "error" || message.stopReason === "aborted") {
+				this.stop("cache refresh failed");
+				return;
 			}
+			const entry = this.sessionManager.appendUsage(
+				"cache_warm",
+				message.provider,
+				message.responseModel ?? message.model,
+				message.usage,
+				extensionOverride ? "extension override" : undefined,
+			);
+			this.onWarmed?.(entry);
 		} catch {
-			// Cache warming is best-effort and must not affect the active agent run.
+			// A failed refresh does not renew the TTL. Stop until a new real
+			// request starts warming, without disturbing a replacement run.
+			if (this.run === run) this.stop("cache refresh failed");
+			return;
 		}
 		if (this.run === run) this.schedule(run);
 	}

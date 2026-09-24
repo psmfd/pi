@@ -307,6 +307,61 @@ describe("cache warming", () => {
 		failed.warmer.cancel();
 	});
 
+	// Regression for psmfd/pi#74: a failed refresh does not renew the cache TTL.
+	it.each(["error", "aborted", "rejection", "throw"] as const)(
+		"stops after a refresh %s until a new real request",
+		async (failure) => {
+			vi.useFakeTimers();
+			let fail = true;
+			const { warmer, calls, appendUsage, warmedEntries } = fakeRuntime({
+				result: (model) => {
+					if (!fail) return Promise.resolve(response(model));
+					if (failure === "throw") throw new Error("refresh failed");
+					if (failure === "rejection") return Promise.reject(new Error("refresh failed"));
+					return Promise.resolve(response(model, failure));
+				},
+			});
+			warmer.start(request(), current);
+			await vi.advanceTimersByTimeAsync(600_000);
+			expect(calls).toHaveLength(1);
+			expect(warmer.status).toMatchObject({ state: "inactive", reason: "cache refresh failed" });
+			expect(appendUsage).not.toHaveBeenCalled();
+			expect(warmedEntries).toHaveLength(0);
+
+			fail = false;
+			warmer.start(request(), current);
+			await vi.advanceTimersByTimeAsync(270_000);
+			expect(calls).toHaveLength(2);
+			expect(appendUsage).toHaveBeenCalledTimes(1);
+			expect(warmer.status.state).toBe("scheduled");
+			warmer.cancel();
+		},
+	);
+
+	it("does not stop a replacement run when an old refresh rejects", async () => {
+		vi.useFakeTimers();
+		let reject!: (error: Error) => void;
+		const result = vi
+			.fn<(model: Model<Api>) => Promise<AssistantMessage>>()
+			.mockImplementationOnce(
+				() =>
+					new Promise((_resolve, rejectPromise) => {
+						reject = rejectPromise;
+					}),
+			)
+			.mockImplementation(async (model) => response(model));
+		const { warmer, calls, appendUsage } = fakeRuntime({ result });
+		warmer.start(request(), current);
+		await vi.advanceTimersByTimeAsync(270_000);
+		warmer.start(request(), current);
+		reject(new Error("replaced refresh failed"));
+		await vi.advanceTimersByTimeAsync(270_000);
+		expect(calls).toHaveLength(2);
+		expect(appendUsage).toHaveBeenCalledTimes(1);
+		expect(warmer.status.state).toBe("scheduled");
+		warmer.cancel();
+	});
+
 	it("formats status and usage entries", () => {
 		const decision: CacheWarmingDecision = {
 			phase: "idle",

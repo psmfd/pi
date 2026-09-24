@@ -155,6 +155,15 @@ That bypass is limited to upstream synchronization and must not be used to carry
 behavioral source patches in the mirror — those go through the manifest-tracked
 patch classes below, in ordinary maintainer-reviewed PRs the guard fully checks.
 
+PR #74 exception (2026-09-23): the maintainer explicitly requested that the
+cache-warming defect fix be folded into this upstream-sync PR. Patch 013 is
+registered as C-class, with its source and regression-test paths added to both
+guards and the text allowlist. This is a narrow admission for a reproduced
+timer-lifecycle defect without a generation ADR or consumer soak; it does not
+expand the general sync bypass or admit other behavioral patches. Review the
+post-import patch separately and verify its residual upstream diff and C-class
+caps directly, since the trusted-sync path skips preventive enforcement.
+
 ## Security-patch divergence
 
 Distinct from the sync bypass above, the mirror may carry a temporary,
