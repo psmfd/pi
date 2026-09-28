@@ -4,10 +4,10 @@
 # vX.Y.Z-psmfd.N tag and attests the newly built bytes, per ADR-0038
 # (psmfd/pi_config): PSMFD never re-attests upstream-built artifacts.
 #
-# Trigger is workflow_dispatch (not a tag trigger) so the workflow BODY is
-# always loaded from the protected default branch — a release tag cannot
-# introduce its own unreviewed workflow code. The preflight job verifies the
-# tag exists, matches the PSMFD release form, and points into main's history.
+# Maintainers dispatch this workflow from protected main. workflow_dispatch
+# uses the selected ref; it does not itself force the workflow body to main.
+# Independently, preflight verifies the release tag exists, matches the PSMFD
+# release form, and points into main's history.
 #
 # Structure (pi_config ADR-forthcoming): tag validation and release publishing
 # are DELEGATED to two shared reusable workflows —
@@ -93,11 +93,13 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
         with:
           node-version: "22"
+          package-manager-cache: false
 
       - name: Set up Bun (pinned)
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2.2.0
         with:
           bun-version: ${{ env.BUN_VERSION }}
+          no-cache: true
 
       - name: Install dependencies (lockfile, no lifecycle scripts)
         run: npm ci --ignore-scripts

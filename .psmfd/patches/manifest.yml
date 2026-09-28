@@ -471,3 +471,137 @@ patches:
     upstream_adopted_in: null
     psmfd_commit: b7f1441dd4cbb5f9b3db639d674b517834de6d8f
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-013
+    status: active
+    class: capability
+    upstream_base: v0.87.1
+    advisory: null
+    severity: null
+    reporting: >-
+      Not applicable (C-class correctness fix). No upstream submission made;
+      upstream contributions remain human-led. Retire when upstream stops
+      refreshing after a failed warm request or the patch is dropped.
+    description: >-
+      Cache-warmer failure recovery (psmfd/pi#74): a failed refresh scheduled
+      another attempt a full delay later despite not renewing the cache TTL.
+      For a five-minute cache, failures at 4m30s caused a replay at 9m,
+      potentially paying for a cache miss. Stop warming on error/aborted
+      results or exceptions until a new real request starts a run. A stale
+      failure must not stop a replacement run. Explicitly admitted by the
+      maintainer for PR #74; see the narrow exception in security-baseline.md.
+      This changes the core timer lifecycle, which an extension decision
+      hook cannot reliably repair because it does not receive refresh results.
+    patched_paths:
+      - packages/coding-agent/src/core/cache-warmer.ts
+      - packages/coding-agent/test/cache-warmer.test.ts
+    evidence: >-
+      Four regressions fail before the fix (two requests instead of one) and
+      pass after it: provider error, aborted result, rejected promise, and
+      synchronous result exception. Tests also cover restarting on a new
+      request, stale rejection isolation, and repeated successful refreshes.
+      All 14 cache-warmer tests pass. No paid-provider or consumer soak claimed.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-014
+    status: active
+    class: security
+    upstream_base: v0.87.1
+    advisory: "CodeQL js/polynomial-redos (psmfd/pi alert 82)"
+    severity: high
+    reporting: >-
+      Potential library-input exposure; maintainer scope assessment pending. No upstream report submitted.
+      Upstream SECURITY.md and CONTRIBUTING.md reviewed; reporting remains human-led.
+    description: >-
+      Cerebras bodyless-overflow regex (PR 74). Move whitespace after the optional status-code text inside that optional group, removing overlapping whitespace repetitions while preserving provider scoping and accepted messages. A one-million-tab nonmatch hits the child-process deadline before the fix and completes after it.
+      No upstream fix or open fix PR found on 2026-09-28.
+    patched_paths:
+      - packages/ai/src/utils/overflow.ts
+      - packages/ai/test/overflow-performance.test.ts
+    evidence: >-
+      Focused regression tests reproduce the pre-fix defect and pass with the patch;
+      full repository checks, offline build, and non-e2e tests validate integration.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-015
+    status: active
+    class: security
+    upstream_base: v0.87.1
+    advisory: "CodeQL js/polynomial-redos (psmfd/pi alert 83)"
+    severity: high
+    reporting: >-
+      Upstream excludes malicious model-output and trusted-local-input resource claims. No demonstrated privilege-boundary bypass; not reported.
+      Upstream SECURITY.md and CONTRIBUTING.md reviewed; reporting remains human-led.
+    description: >-
+      LaTeX script whitespace normalization (PR 74). Consume each whitespace run once and remove it only beside script operators. A 200,000-space script supplied through renderLatex hits the child-process deadline before the fix and completes after it; formatting tests preserve unrelated spaces.
+      No upstream fix or open fix PR found on 2026-09-28.
+    patched_paths:
+      - packages/tui/src/latex.ts
+      - packages/tui/test/latex-performance.test.ts
+    evidence: >-
+      Focused regression tests reproduce the pre-fix defect and pass with the patch;
+      full repository checks, offline build, and non-e2e tests validate integration.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-016
+    status: active
+    class: security
+    upstream_base: v0.87.1
+    advisory: "CodeQL js/polynomial-redos (psmfd/pi alert 60)"
+    severity: high
+    reporting: >-
+      Upstream excludes trusted-local-input resource claims and untrusted skills. No demonstrated boundary bypass; not reported.
+      Upstream SECURITY.md and CONTRIBUTING.md reviewed; reporting remains human-led.
+    description: >-
+      Skill path trailing-separator normalization (PR 74). Replace unanchored trailing-separator regexes with a backward scan for skill recognition, parent paths, and relative paths. One-million-separator nonmatches time out before the fix and complete afterward; tests retain root and Windows path behavior.
+      No upstream fix or open fix PR found on 2026-09-28.
+    patched_paths:
+      - packages/agent/src/harness/skills.ts
+      - packages/agent/test/harness/skills-performance.test.ts
+    evidence: >-
+      Focused regression tests reproduce the pre-fix defect and pass with the patch;
+      full repository checks, offline build, and non-e2e tests validate integration.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-017
+    status: active
+    class: security
+    upstream_base: v0.87.1
+    advisory: "CodeQL js/prototype-polluting-assignment (psmfd/pi alert 86)"
+    severity: medium
+    reporting: >-
+      Stored/local task-input hardening; no remote exploit or privilege-boundary bypass demonstrated. Not reported.
+      Upstream SECURITY.md and CONTRIBUTING.md reviewed; reporting remains human-led.
+    description: >-
+      Owned numeric tool-slot validation (PR 74). Require nonnegative safe-integer indices and owned array slots for execution, abort, and suspension. Real transaction regressions reject string indices and let abort/suspend skip invalid slots. Chord already blocks __proto__ in production; the earlier plain-object probe did not demonstrate production prototype pollution. Tests also cover inherited numeric slots, holes, and valid indices.
+      No upstream fix or open fix PR found on 2026-09-28.
+    patched_paths:
+      - packages/agent/src/harness/pico3/tool-slot.ts
+      - packages/agent/src/harness/pico3/kinds/tool.ts
+      - packages/agent/src/harness/pico3/session.ts
+      - packages/agent/src/harness/pico3/harness.ts
+      - packages/agent/test/harness/pico3/tool-slot.test.ts
+    evidence: >-
+      Focused regression tests reproduce the pre-fix defect and pass with the patch;
+      full repository checks, offline build, and non-e2e tests validate integration.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

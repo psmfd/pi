@@ -95,6 +95,21 @@ jobs:
               ".github/dependabot.yml",
           }
           SECURITY_PATCH_PATHS = {
+              # psmfd-patch-014 — CodeQL 82 (PR 74).
+              "packages/ai/src/utils/overflow.ts",
+              "packages/ai/test/overflow-performance.test.ts",
+              # psmfd-patch-015 — CodeQL 83 (PR 74).
+              "packages/tui/src/latex.ts",
+              "packages/tui/test/latex-performance.test.ts",
+              # psmfd-patch-016 — CodeQL 60 (PR 74).
+              "packages/agent/src/harness/skills.ts",
+              "packages/agent/test/harness/skills-performance.test.ts",
+              # psmfd-patch-017 — CodeQL 86 (PR 74).
+              "packages/agent/src/harness/pico3/tool-slot.ts",
+              "packages/agent/src/harness/pico3/kinds/tool.ts",
+              "packages/agent/src/harness/pico3/session.ts",
+              "packages/agent/src/harness/pico3/harness.ts",
+              "packages/agent/test/harness/pico3/tool-slot.test.ts",
               # psmfd-patch-001 / -005 (git arg/transport hardening); shared paths.
               "packages/coding-agent/src/utils/git.ts",
               "packages/coding-agent/src/core/package-manager.ts",
@@ -119,6 +134,9 @@ jobs:
               "packages/coding-agent/test/rpc-list-sessions.test.ts",
               # psmfd-patch-012 — session_start dialog fix (psmfd/pi#57).
               "packages/coding-agent/test/rpc-session-start-dialog.test.ts",
+              # psmfd-patch-013 — cache-warmer failure recovery (psmfd/pi#74).
+              "packages/coding-agent/src/core/cache-warmer.ts",
+              "packages/coding-agent/test/cache-warmer.test.ts",
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),

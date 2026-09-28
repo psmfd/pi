@@ -72,6 +72,21 @@ jobs:
           # allowlist data only; it does not change the guard's trust model, and
           # every such change still requires maintainer review before merge.
           SECURITY_PATCH_PATHS = {
+              # psmfd-patch-014 — CodeQL 82 (PR 74).
+              "packages/ai/src/utils/overflow.ts",
+              "packages/ai/test/overflow-performance.test.ts",
+              # psmfd-patch-015 — CodeQL 83 (PR 74).
+              "packages/tui/src/latex.ts",
+              "packages/tui/test/latex-performance.test.ts",
+              # psmfd-patch-016 — CodeQL 60 (PR 74).
+              "packages/agent/src/harness/skills.ts",
+              "packages/agent/test/harness/skills-performance.test.ts",
+              # psmfd-patch-017 — CodeQL 86 (PR 74).
+              "packages/agent/src/harness/pico3/tool-slot.ts",
+              "packages/agent/src/harness/pico3/kinds/tool.ts",
+              "packages/agent/src/harness/pico3/session.ts",
+              "packages/agent/src/harness/pico3/harness.ts",
+              "packages/agent/test/harness/pico3/tool-slot.test.ts",
               # psmfd-patch-001 — git-ref flag injection (CodeQL 19/22).
               # These five paths are SHARED with psmfd-patch-005 (git transport
               # hardening); both active. Do not remove while either is active.
@@ -110,6 +125,9 @@ jobs:
               "packages/coding-agent/test/rpc-list-sessions.test.ts",
               # psmfd-patch-012 — session_start dialog fix (psmfd/pi#57).
               "packages/coding-agent/test/rpc-session-start-dialog.test.ts",
+              # psmfd-patch-013 — cache-warmer failure recovery (psmfd/pi#74).
+              "packages/coding-agent/src/core/cache-warmer.ts",
+              "packages/coding-agent/test/cache-warmer.test.ts",
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),
