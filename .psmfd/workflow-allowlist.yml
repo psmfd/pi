@@ -34,14 +34,15 @@ workflows:
       third_party_actions_reviewed: true
       release_behavior_reviewed: true
       notes: >-
-        workflow_dispatch only, so the workflow body always loads from the
-        protected default branch and a release tag cannot carry its own
-        workflow code. Default permissions none; per-job least privilege
+        workflow_dispatch uses the selected ref; maintainers dispatch from
+        protected main. Preflight checks release-tag ancestry against main.
+        PR #74 explicitly disables Node/Bun shared caches in the build job.
+        Default permissions none; per-job least privilege
         (id-token/attestations write confined to the local attest job; contents
         write granted to the publish job that calls psmfd-reusable-publish). No
         repository secrets; OIDC keyless signing only. All third-party actions
         SHA-pinned. Reusable calls use local `./.github/workflows/...` refs, so
-        they load from the same protected default branch as this caller.
+        they load from the same commit as this caller.
         Release behavior unchanged: attest still runs HERE, so the attestation
         signer identity stays psmfd/pi/.github/workflows/psmfd-release.yml and
         the consumer `gh attestation verify --signer-workflow` contract is
@@ -69,8 +70,9 @@ workflows:
       notes: >-
         workflow_call only — invocable solely by an approved caller in this repo
         (or a cross-repo caller it is shared with), never by an external event;
-        called via a local `./` ref so it loads from the protected default
-        branch. Identity-neutral: creates no attestations and publishes nothing.
+        called via a local `./` ref so it loads from the caller's commit.
+        PR #74 explicitly checks out main for the ancestry validation.
+        Identity-neutral: creates no attestations and publishes nothing.
         Single job with contents:read; one SHA-pinned action (actions/checkout
         v6.0.3). No repository secrets (default GITHUB_TOKEN). No release
         behavior (validation + outputs only).
@@ -91,7 +93,7 @@ workflows:
       release_behavior_reviewed: true
       notes: >-
         workflow_call only; called via a local `./` ref so it loads from the
-        protected default branch. Identity-neutral BY DESIGN: it does NOT create
+        caller's commit. Identity-neutral BY DESIGN: it does NOT create
         attestations (the caller's own attest job does), and the signer-workflow
         path it verifies against is passed in as an input, so each caller
         verifies against its own attestation identity and pi's existing verify

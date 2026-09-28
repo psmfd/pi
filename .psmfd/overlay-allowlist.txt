@@ -48,6 +48,22 @@ packages/coding-agent/examples/extensions/sandbox/package-lock.json
 # install-lock/package-lock.json are removed from this allowlist and
 # SECURITY_PATCH_PATHS in lockstep.
 
+# psmfd-patch-014 — Cerebras bodyless-overflow regex (CodeQL 82, PR 74).
+packages/ai/src/utils/overflow.ts
+packages/ai/test/overflow-performance.test.ts
+# psmfd-patch-015 — LaTeX script whitespace normalization (CodeQL 83, PR 74).
+packages/tui/src/latex.ts
+packages/tui/test/latex-performance.test.ts
+# psmfd-patch-016 — Skill path trailing-separator normalization (CodeQL 60, PR 74).
+packages/agent/src/harness/skills.ts
+packages/agent/test/harness/skills-performance.test.ts
+# psmfd-patch-017 — Owned numeric tool-slot validation (CodeQL 86, PR 74).
+packages/agent/src/harness/pico3/tool-slot.ts
+packages/agent/src/harness/pico3/kinds/tool.ts
+packages/agent/src/harness/pico3/session.ts
+packages/agent/src/harness/pico3/harness.ts
+packages/agent/test/harness/pico3/tool-slot.test.ts
+
 # Capability-patch exemptions (C-class, pi_config ADR-0138/ADR-0145) —
 # upstream-owned paths carrying a manifest-tracked PSMFD capability patch.
 # Persist until upstream adopts an equivalent capability or the patch is

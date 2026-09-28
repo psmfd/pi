@@ -12,6 +12,7 @@ import { tool } from "./kinds/tool.ts";
 import { Scheduler } from "./scheduler.ts";
 import { isCoreKind, Session, type TxImpl } from "./session.ts";
 import { type SystemSection, systemSections } from "./system.ts";
+import { getToolSlot } from "./tool-slot.ts";
 import {
 	type AnyKind,
 	type AnyToolDeclaration,
@@ -409,8 +410,8 @@ export class Harness<Ks extends readonly AnyKind[] = []> {
 				KERNEL,
 				(tx) => {
 					for (const task of tools) {
-						const index = (task.input as { index: number }).index;
-						const slot = tx.sticky(task.conversationId).turn.tools[index];
+						const index = (task.input as { index: unknown }).index;
+						const slot = getToolSlot(tx.sticky(task.conversationId).turn.tools, index);
 						if (slot?.waitingOn !== undefined) delete slot.waitingOn;
 					}
 				},

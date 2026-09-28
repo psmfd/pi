@@ -3,6 +3,7 @@ import type { ToolCall } from "@earendil-works/pi-ai";
 import type { TSchema } from "typebox";
 import { Errors } from "typebox/value";
 import { Bounded } from "../bounded.ts";
+import { getToolSlot } from "../tool-slot.ts";
 import {
 	type AnyToolDeclaration,
 	type BeforeToolApi,
@@ -170,7 +171,7 @@ export const tool: CoreKind<ToolInput, ToolCheckpoint, ToolTaskResult, never, { 
 				model: [toMessage(call, synthetic("tool aborted", "aborted"), rt.now())],
 				data: { diagnostics: [{ severity: "error", message: "aborted", code: "aborted" }] },
 			});
-			const slot = tx.sticky(current.conversationId).turn.tools[task.input.index];
+			const slot = getToolSlot(tx.sticky(current.conversationId).turn.tools, task.input.index);
 			if (slot !== undefined) {
 				slot.status = "aborted";
 				slot.entry = entry;

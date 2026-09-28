@@ -38,8 +38,8 @@ runnable workflow must appear in `.psmfd/workflow-allowlist.yml`.
   workflows whose filenames start with `psmfd-`.
 - Active workflow set: `.github/workflows/psmfd-zero-divergence.yml`,
   `.github/workflows/psmfd-release.yml` (build-and-attest releases per
-  ADR-0038; `workflow_dispatch` only so the workflow body always loads from
-  the protected default branch; recorded in the workflow allowlist), and
+  ADR-0038; maintainers dispatch from protected main, since `workflow_dispatch`
+  runs the selected ref; recorded in the workflow allowlist), and
   `.github/workflows/psmfd-divergence-detect.yml` (detective post-push
   divergence check, see "Branch protection" below).
 - Upstream workflow reference directory:
@@ -163,6 +163,13 @@ timer-lifecycle defect without a generation ADR or consumer soak; it does not
 expand the general sync bypass or admit other behavioral patches. Review the
 post-import patch separately and verify its residual upstream diff and C-class
 caps directly, since the trusted-sync path skips preventive enforcement.
+
+PR #74 CodeQL remediation admission: the maintainer also approved implementing
+the reviewed CodeQL plan in this PR. Patches 014–017 are registered as S-class
+for alerts 82, 83, 60, and 86, with source/test paths in both guards and the
+allowlist. Review these post-import changes and verify the residual upstream
+diff directly; the trusted-sync bypass remains unchanged. Release-workflow
+cache hardening stays within PSMFD-owned overlay paths.
 
 ## Security-patch divergence
 

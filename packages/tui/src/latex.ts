@@ -612,7 +612,15 @@ function replaceCharacters(value: string, replacements: Readonly<Record<string, 
 }
 
 function normalizeScriptValue(value: string): string {
-	return value.trim().replace(/\s*([=+-])\s*/g, "$1");
+	value = value.trim();
+	// Consume each whitespace run once, including runs with no adjacent operator.
+	return value.replace(/\s+/g, (space, offset: number) => {
+		const before = value[offset - 1];
+		const after = value[offset + space.length];
+		return before === "=" || before === "+" || before === "-" || after === "=" || after === "+" || after === "-"
+			? ""
+			: space;
+	});
 }
 
 function formatUnicodeScript(value: string, kind: "sub" | "sup"): string | undefined {

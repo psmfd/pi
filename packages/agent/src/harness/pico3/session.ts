@@ -3,6 +3,7 @@ import { createContextKey, withContextValue, withoutAbortSignal } from "@earendi
 import { isBase, type Op, type Tracker, track } from "@earendil-works/chord/delta";
 import { deriveContext } from "./context.ts";
 import { Membrane } from "./membrane.ts";
+import { getToolSlot } from "./tool-slot.ts";
 import {
 	type AnyKind,
 	type Checkpoint,
@@ -674,9 +675,10 @@ class TxImpl implements CoreTx {
 	}
 	toolSlot(task: { conversationId: Id; input: { index: number } }): ToolSlot {
 		this.assertCore("toolSlot");
-		const slot = this.raw<StickyState>({ doc: "sticky", conversationId: task.conversationId }).turn.tools[
-			task.input.index
-		];
+		const slot = getToolSlot(
+			this.raw<StickyState>({ doc: "sticky", conversationId: task.conversationId }).turn.tools,
+			task.input.index,
+		);
 		if (slot === undefined) throw new Error(`no tool slot at index ${task.input.index}`);
 		return slot;
 	}
