@@ -31,14 +31,14 @@
 #   id                 short stable patch identifier (also the PSMFD-Patch: trailer value)
 #   status             active | pending | retired
 #   class              security (S-class) | capability (C-class)
-#   upstream_base      upstream version the patch is applied on top of
+#   upstream_base      currently verified upstream content baseline (not Git ancestry)
 #   advisory           CVE / GHSA / CodeQL rule + alert reference
 #   severity           upstream-reported severity
 #   reporting          upstream-reporting determination, gated on upstream's published
 #                      SECURITY.md scope + CONTRIBUTING.md process (ADR-0043). Fix is
 #                      always applied; reporting is decided after and recorded here.
 #   patched_paths      upstream-owned files this patch modifies (lockstep with allowlist + guard)
-#   evidence           how the fix is proven (regression test / resolved version)
+#   evidence           historical proof plus dated baseline verification; not a fresh test claim
 #   upstream_issue     upstream issue URL once filed (null until then)
 #   upstream_pr        upstream PR URL once opened (null until then)
 #   upstream_fixed_in  upstream version that ships the fix; setting this triggers retirement (S-class)
@@ -46,11 +46,13 @@
 #   psmfd_commit       commit that introduces the patch on mirror main (filled on merge)
 #   psmfd_retire_commit commit that retires the patch (filled on retirement)
 
+# See PROVENANCE.md for the 2026-09-29 topology, cap measurements, and
+# validation limits. Historical reporting determinations are not live rechecks.
 patches:
   - id: psmfd-patch-001
     status: active
     class: security
-    upstream_base: v0.85.1
+    upstream_base: v0.87.1
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
     reporting: >-
@@ -73,10 +75,17 @@ patches:
       - packages/coding-agent/test/git-update.test.ts
       - packages/coding-agent/test/package-manager.test.ts
     evidence: >-
+      Historical evidence recorded before this reconciliation (previous baseline v0.85.1):
       Failing-then-passing regression tests in git-ssh-url.test.ts assert
       parseGitUrl rejects option-like refs; git-update.test.ts asserts the
       hardened real-git fetch args. Pre-fix the injection refs parsed through;
       post-fix they are rejected. `npm run check` clean.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      Unsafe-ref checks and fetch/checkout option boundaries remain in the
+      source and regression paths.
+      This comparison did not rerun runtime tests or consumer soak.
     upstream_issue: "https://github.com/psmfd/pi/issues/7"
     upstream_pr: null
     upstream_fixed_in: null
@@ -116,7 +125,7 @@ patches:
   - id: psmfd-patch-003
     status: active
     class: security
-    upstream_base: v0.85.1
+    upstream_base: v0.87.1
     advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p; GHSA-395f-4hp3-45gv (quadratic DoS in parse(), <= 1.8.4, published 2026-07-20)"
     severity: critical
     reporting: >-
@@ -136,9 +145,16 @@ patches:
     patched_paths:
       - packages/coding-agent/examples/extensions/sandbox/package-lock.json
     evidence: >-
+      Historical evidence recorded before this reconciliation (previous baseline v0.85.1):
       shell-quote resolves to 1.10.0 (verified registry integrity) and satisfies
       the parent ^1.8.3 range; npm re-resolution keeps 1.10.0; npm audit clears
       both GHSAs for the sandbox tree.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      The sandbox lockfile still differs from upstream shell-quote 1.8.3 by
+      pinning 1.10.0; no new registry or audit run.
+      This comparison did not rerun runtime tests or consumer soak.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
@@ -175,7 +191,7 @@ patches:
   - id: psmfd-patch-005
     status: active
     class: security
-    upstream_base: v0.85.1
+    upstream_base: v0.87.1
     advisory: "CodeQL js/shell-command-constructed-from-input (psmfd/pi alerts 33-37)"
     severity: medium
     reporting: >-
@@ -203,9 +219,16 @@ patches:
       - packages/coding-agent/test/git-ssh-url.test.ts
       - packages/coding-agent/test/package-manager.test.ts
     evidence: >-
+      Historical evidence recorded before this reconciliation (previous baseline v0.85.1):
       Regression tests: git-ssh-url.test.ts rejects ext::/fd::/file:// transports
       and option-shaped/whitespace host/path; package-manager.test.ts asserts the
       clone runs with `--end-of-options`. `npm run check` + `./test.sh` clean.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      Clone option boundaries and host/path/transport rejection remain in
+      the source and regression paths.
+      This comparison did not rerun runtime tests or consumer soak.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
@@ -361,7 +384,7 @@ patches:
   - id: psmfd-patch-010
     status: active
     class: capability
-    upstream_base: v0.85.1
+    upstream_base: v0.87.1
     advisory: null
     severity: null
     reporting: >-
@@ -384,6 +407,7 @@ patches:
       - packages/coding-agent/src/modes/rpc/rpc-client.ts
       - packages/coding-agent/test/rpc-hello.test.ts
     evidence: >-
+      Historical evidence recorded before this reconciliation (previous baseline v0.85.1):
       Keyless regression suite test/rpc-hello.test.ts (red-first: 4/4 failed
       before the patch, 4/4 pass with it) covers the frame shape and the
       client's three readiness paths (hello, legacy grace, protocol refusal).
@@ -393,6 +417,12 @@ patches:
       v0.85.1 re-application (psmfd/pi#64 review): upstream's new clear_queue
       command is advertised in RPC_CAPABILITIES and the hello test asserts the
       literal capability list so an unadvertised command fails red.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      The hello frame, client readiness gates, and clear_queue advertisement
+      remain in the source and regression paths.
+      This comparison did not rerun runtime tests or consumer soak.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
@@ -402,7 +432,7 @@ patches:
   - id: psmfd-patch-011
     status: active
     class: capability
-    upstream_base: v0.85.1
+    upstream_base: v0.87.1
     advisory: null
     severity: null
     reporting: >-
@@ -423,12 +453,19 @@ patches:
       - packages/coding-agent/src/modes/rpc/rpc-client.ts
       - packages/coding-agent/test/rpc-list-sessions.test.ts
     evidence: >-
+      Historical evidence recorded before this reconciliation (previous baseline v0.85.1):
       Keyless regression suite test/rpc-list-sessions.test.ts (red-first: 4/4
       failed before the patch, 4/4 pass with it) covers the wire projection
       (allMessagesText absent), a real session-dir listing, the capability
       advertisement, and the client round-trip. Consumer proof: FingerTrap's
       session browser retires its direct SessionStore scan against this
       command (psmfd/FingerTrap#140, ADR-0025).
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      The header-only session projection, capability advertisement, and
+      typed client method remain in the source and regression paths.
+      This comparison did not rerun runtime tests or consumer soak.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
@@ -438,7 +475,7 @@ patches:
   - id: psmfd-patch-012
     status: active
     class: capability
-    upstream_base: v0.85.1
+    upstream_base: v0.87.1
     advisory: null
     severity: null
     reporting: >-
@@ -458,6 +495,7 @@ patches:
       - packages/coding-agent/src/modes/rpc/rpc-mode.ts
       - packages/coding-agent/test/rpc-session-start-dialog.test.ts
     evidence: >-
+      Historical evidence recorded before this reconciliation (previous baseline v0.85.1):
       Keyless integration regression test/rpc-session-start-dialog.test.ts
       (red-first against the pre-patch build: pi exits 0 mid-round-trip -
       the exact psmfd/pi#57 failure; green with the patch: the confirm is
@@ -466,6 +504,12 @@ patches:
       proof: FingerTrap's session-start-dialog-exit golden flips on
       re-record against this pin (psmfd/FingerTrap#147 retires its
       treat-as-fatal supervisor policy).
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      The early reader, UI-response handling, and buffered command/EOF
+      replay remain in the source and regression paths.
+      This comparison did not rerun runtime tests or consumer soak.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
@@ -496,15 +540,24 @@ patches:
       - packages/coding-agent/src/core/cache-warmer.ts
       - packages/coding-agent/test/cache-warmer.test.ts
     evidence: >-
+      Historical PR #74 evidence (2026-09-28):
       Four regressions fail before the fix (two requests instead of one) and
       pass after it: provider error, aborted result, rejected promise, and
       synchronous result exception. Tests also cover restarting on a new
       request, stale rejection isolation, and repeated successful refreshes.
       All 14 cache-warmer tests pass. No paid-provider or consumer soak claimed.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      Cache-warmer lifecycle changes and regression paths remain distinct
+      from upstream.
+      This comparison did not rerun runtime tests or consumer soak.
+      Supporting PR #74 patch commit: 5f34590e8e1b62e5789f9076d176e51b4f405890.
+      psmfd_commit records the mainline squash, not that original PR commit.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
-    psmfd_commit: null
+    psmfd_commit: 2e5b4b1d19695d2f3a36c1b37db252e8950a171b
     psmfd_retire_commit: null
 
   - id: psmfd-patch-014
@@ -523,12 +576,21 @@ patches:
       - packages/ai/src/utils/overflow.ts
       - packages/ai/test/overflow-performance.test.ts
     evidence: >-
+      Historical PR #74 evidence (2026-09-28):
       Focused regression tests reproduce the pre-fix defect and pass with the patch;
       full repository checks, offline build, and non-e2e tests validate integration.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      The scoped overflow regex change and performance regression remain
+      distinct from upstream.
+      This comparison did not rerun runtime tests or consumer soak.
+      Supporting PR #74 patch commit: 95660570efdc015d90ce218a5284a9659ce17f8a.
+      psmfd_commit records the mainline squash, not that original PR commit.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
-    psmfd_commit: null
+    psmfd_commit: 2e5b4b1d19695d2f3a36c1b37db252e8950a171b
     psmfd_retire_commit: null
 
   - id: psmfd-patch-015
@@ -547,12 +609,21 @@ patches:
       - packages/tui/src/latex.ts
       - packages/tui/test/latex-performance.test.ts
     evidence: >-
+      Historical PR #74 evidence (2026-09-28):
       Focused regression tests reproduce the pre-fix defect and pass with the patch;
       full repository checks, offline build, and non-e2e tests validate integration.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      The whitespace scan and formatting/performance regressions remain
+      distinct from upstream.
+      This comparison did not rerun runtime tests or consumer soak.
+      Supporting PR #74 patch commit: 95660570efdc015d90ce218a5284a9659ce17f8a.
+      psmfd_commit records the mainline squash, not that original PR commit.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
-    psmfd_commit: null
+    psmfd_commit: 2e5b4b1d19695d2f3a36c1b37db252e8950a171b
     psmfd_retire_commit: null
 
   - id: psmfd-patch-016
@@ -571,12 +642,21 @@ patches:
       - packages/agent/src/harness/skills.ts
       - packages/agent/test/harness/skills-performance.test.ts
     evidence: >-
+      Historical PR #74 evidence (2026-09-28):
       Focused regression tests reproduce the pre-fix defect and pass with the patch;
       full repository checks, offline build, and non-e2e tests validate integration.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      The trailing-separator scan and path/performance regressions remain
+      distinct from upstream.
+      This comparison did not rerun runtime tests or consumer soak.
+      Supporting PR #74 patch commit: 95660570efdc015d90ce218a5284a9659ce17f8a.
+      psmfd_commit records the mainline squash, not that original PR commit.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
-    psmfd_commit: null
+    psmfd_commit: 2e5b4b1d19695d2f3a36c1b37db252e8950a171b
     psmfd_retire_commit: null
 
   - id: psmfd-patch-017
@@ -598,10 +678,19 @@ patches:
       - packages/agent/src/harness/pico3/harness.ts
       - packages/agent/test/harness/pico3/tool-slot.test.ts
     evidence: >-
+      Historical PR #74 evidence (2026-09-28):
       Focused regression tests reproduce the pre-fix defect and pass with the patch;
       full repository checks, offline build, and non-e2e tests validate integration.
+      2026-09-29 static verification against upstream v0.87.1
+      (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) at main
+      d58da7c83c57e8e51d5e8e21ec24da4ee7131aba:
+      The owned numeric slot helper, its execution/abort/suspend callers,
+      and transaction regressions remain distinct from upstream.
+      This comparison did not rerun runtime tests or consumer soak.
+      Supporting PR #74 patch commit: 95660570efdc015d90ce218a5284a9659ce17f8a.
+      psmfd_commit records the mainline squash, not that original PR commit.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
-    psmfd_commit: null
+    psmfd_commit: 2e5b4b1d19695d2f3a36c1b37db252e8950a171b
     psmfd_retire_commit: null
