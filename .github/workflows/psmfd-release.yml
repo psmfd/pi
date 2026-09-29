@@ -134,11 +134,14 @@ jobs:
           #
           # Keep this list in sync with the root package.json "build" script.
           # Upstream v0.84.0 added packages/telemetry (imported by ai and agent)
-          # plus protocol/client/server; omitting any of them fails at tsgo time.
+          # plus protocol/client/server. v0.87.1 also builds durable between ai and
+          # agent; its public exports require fresh dist output (psmfd/pi#70).
+          # Offline regression: .psmfd/test/release-build.test.mjs.
           (cd packages/chord && npm run build)
           (cd packages/tui && npm run build)
           (cd packages/telemetry && npm run build)
           (cd packages/ai && npx tsgo -p tsconfig.build.json)
+          (cd packages/durable && npm run build)
           (cd packages/agent && npm run build)
           (cd packages/session-backends/sqlite-node && npm run build)
           (cd packages/protocol && npm run build)
