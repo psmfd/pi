@@ -227,6 +227,18 @@ with these differences:
   (manifest `upstream_adopted_in`) or the patch being dropped/upstreamed —
   same merge-time allowlist-drop mechanics as S-class.
 
+### Qualification correctness admissions (2026-09-29)
+
+The maintainer explicitly admitted patches 018 and 019 for
+[#77](https://github.com/psmfd/pi/issues/77) (auth cache freshness) and
+[#78](https://github.com/psmfd/pi/issues/78) (Node 22 Chord stack overflow).
+These are narrow C-class correctness exceptions without a generation ADR or
+consumer soak. Both defects were reproduced during v0.87.1 qualification;
+extensions cannot repair their private core helpers. The patches retain the
+C-class caps, manifest/allowlist/guard parity, and normal maintainer review.
+They do not broaden general eligibility or the trusted-sync bypass. Neither is
+classified as a security finding. Upstream submission remains human-led.
+
 ## Upstream reporting gate
 
 Fixing a security finding in the mirror and reporting it upstream are separate

@@ -5,6 +5,7 @@ import { type CredentialStore, createModels, type Provider } from "@earendil-wor
 import lockfile from "proper-lockfile";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { AuthStorage, FileAuthStorageBackend } from "../src/core/auth-storage.ts";
+import * as paths from "../src/utils/paths.ts";
 
 describe("AuthStorage", () => {
 	const tempDir = join(tmpdir(), `pi-test-auth-storage-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -114,6 +115,7 @@ describe("AuthStorage", () => {
 	});
 
 	test("keeps a coalesced reload alive while another credential reader is waiting", async () => {
+		vi.spyOn(paths, "getFileRevision").mockReturnValue("same-metadata-0");
 		writeAuthJson({ anthropic: { type: "api_key", key: "old" } });
 		const storage = AuthStorage.create(authJsonPath);
 		writeAuthJson({ anthropic: { type: "api_key", key: "new" } });
@@ -137,6 +139,107 @@ describe("AuthStorage", () => {
 		await expect(second).resolves.toEqual({ type: "api_key", key: "new" });
 		expect(lockSpy).toHaveBeenCalledTimes(1);
 		expect(release).toHaveBeenCalledTimes(1);
+	});
+
+	// psmfd/pi#77: force stat-based cache collisions independently of filesystem timestamp precision.
+	test("refreshes reads and lists after same-size edits with unchanged metadata", async () => {
+		vi.spyOn(paths, "getFileRevision").mockReturnValue("same-metadata-1");
+		writeAuthJson({ first: { type: "api_key", key: "old" } });
+		const storage = AuthStorage.create(authJsonPath);
+		const lockSpy = vi.spyOn(lockfile, "lock");
+		writeAuthJson({ first: { type: "api_key", key: "new" } });
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "new" });
+		writeAuthJson({ other: { type: "api_key", key: "new" } });
+		expect(await storage.list()).toEqual([{ providerId: "other", type: "api_key" }]);
+		expect(await storage.read("first")).toBeUndefined();
+		expect(lockSpy).toHaveBeenCalledTimes(2);
+		await storage.read("other");
+		await storage.list();
+		expect(lockSpy).toHaveBeenCalledTimes(2);
+	});
+
+	test("refreshes a shared constructor snapshot after a metadata collision", async () => {
+		vi.spyOn(paths, "getFileRevision").mockReturnValue("same-metadata-2");
+		writeAuthJson({ first: { type: "api_key", key: "old" } });
+		const first = AuthStorage.create(authJsonPath);
+		writeAuthJson({ first: { type: "api_key", key: "new" } });
+		const lockSpy = vi.spyOn(lockfile, "lockSync");
+		const second = AuthStorage.create(authJsonPath);
+		expect(lockSpy).toHaveBeenCalledTimes(1);
+		expect(await second.read("first")).toEqual({ type: "api_key", key: "new" });
+		expect(await first.read("first")).toEqual({ type: "api_key", key: "new" });
+		AuthStorage.create(authJsonPath);
+		expect(lockSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test("fingerprints the snapshot read after acquiring a contended lock", async () => {
+		writeAuthJson({ first: { type: "api_key", key: "old" } });
+		const storage = AuthStorage.create(authJsonPath);
+		writeAuthJson({ first: { type: "api_key", key: "intermediate" } });
+		const release = vi.fn(async () => {});
+		const lockSpy = vi.spyOn(lockfile, "lock").mockImplementation(async () => {
+			writeAuthJson({ first: { type: "api_key", key: "latest" } });
+			return release;
+		});
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "latest" });
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "latest" });
+		expect(lockSpy).toHaveBeenCalledTimes(1);
+		expect(release).toHaveBeenCalledTimes(1);
+	});
+
+	test("retries after all coalesced readers abort", async () => {
+		writeAuthJson({ first: { type: "api_key", key: "old" } });
+		const storage = AuthStorage.create(authJsonPath);
+		writeAuthJson({ first: { type: "api_key", key: "newer" } });
+		let grantLock: (() => void) | undefined;
+		const granted = new Promise<void>((resolve) => {
+			grantLock = resolve;
+		});
+		const release = vi.fn(async () => {});
+		const lockSpy = vi.spyOn(lockfile, "lock").mockImplementationOnce(async () => {
+			await granted;
+			return release;
+		});
+		const controller = new AbortController();
+		const reads = [storage.read("first", { signal: controller.signal }), storage.list({ signal: controller.signal })];
+		controller.abort();
+		for (const read of reads) await expect(read).rejects.toMatchObject({ name: "AbortError" });
+		grantLock?.();
+		await vi.waitFor(() => expect(release).toHaveBeenCalledTimes(1));
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "newer" });
+		expect(lockSpy).toHaveBeenCalledTimes(2);
+	});
+
+	test("preserves the last valid snapshot on malformed or unreadable files and recovers", async () => {
+		writeAuthJson({ first: { type: "api_key", key: "old" } });
+		const storage = AuthStorage.create(authJsonPath);
+		writeFileSync(authJsonPath, "{broken");
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "old" });
+		await expect(storage.read("first", { signal: new AbortController().signal })).rejects.toThrow();
+		rmSync(authJsonPath);
+		mkdirSync(authJsonPath);
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "old" });
+		rmSync(authJsonPath, { recursive: true });
+		writeAuthJson({ first: { type: "api_key", key: "new" } });
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "new" });
+	});
+
+	test("keeps no-write modifications cacheable and observes edits after mutations", async () => {
+		vi.spyOn(paths, "getFileRevision").mockReturnValue("same-metadata-3");
+		writeAuthJson({ first: { type: "api_key", key: "old" } });
+		const storage = AuthStorage.create(authJsonPath);
+		const lockSpy = vi.spyOn(lockfile, "lock");
+		await storage.modify("first", async () => undefined);
+		await storage.read("first");
+		expect(lockSpy).toHaveBeenCalledTimes(1);
+		await storage.modify("first", async () => ({ type: "api_key", key: "set" }));
+		await storage.read("first");
+		writeAuthJson({ first: { type: "api_key", key: "new" } });
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "new" });
+		await storage.delete("first");
+		expect(await storage.list()).toEqual([]);
+		writeAuthJson({ first: { type: "api_key", key: "end" } });
+		expect(await storage.read("first")).toEqual({ type: "api_key", key: "end" });
 	});
 
 	test.skipIf(process.platform === "win32")("creates new auth files with owner-only permissions", () => {

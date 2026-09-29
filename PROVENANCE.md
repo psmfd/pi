@@ -10,8 +10,10 @@ This repository is a detached PSMFD mirror of the upstream pi source repository:
 
 ## Trust statement
 
-PSMFD builds selected upstream source versions with approved overlays and bounded
-source patches. PSMFD does not claim authorship of upstream commits, retroactively
+PSMFD builds selected upstream source versions with approved overlays and
+bounded
+source patches. PSMFD does not claim authorship of upstream commits,
+retroactively
 vouch for their signatures, or claim upstream endorsement of PSMFD changes.
 Recorded upstream source content and Git ancestry are separate provenance facts;
 the v0.87.1 import below demonstrates that distinction.
@@ -52,7 +54,8 @@ At the **2026-09-29 checkpoint** on `main`
 Every active path must match the manifest, `.psmfd/overlay-allowlist.txt`, and
 the appropriate `SECURITY_PATCH_PATHS` or `C_CLASS_PATCH_PATHS` set in **both**
 `psmfd-zero-divergence.yml` and `psmfd-divergence-detect.yml`. Patch commits use
-`PSMFD-Patch: <id>` trailers; the manifest records mainline integration separately
+`PSMFD-Patch: <id>` trailers; the manifest records mainline integration
+separately
 from supporting PR history when squashing loses those individual commits.
 Retirement updates the manifest and drops exemptions between sync merge and
 resolution, never by rebasing history. Shared paths retain exemptions while any
@@ -60,7 +63,8 @@ active patch owns them. C-class conflicts resolved with `--ours` must record
 discarded upstream changes as drift debt.
 
 Maintainer review is the binding control: same-repository PRs can edit guards,
-and trusted same-repository `sync/upstream-*` PRs from the configured actor bypass
+and trusted same-repository `sync/upstream-*` PRs from the configured actor
+bypass
 path enforcement. Neither path exemptions nor that bypass approve arbitrary
 source changes. Security reporting remains a separate, human-led decision under
 the baseline's reporting gate; manifest determinations are historical records.
@@ -79,10 +83,77 @@ restricted to each patch's paths, then sums across active C-class patches:
 | 013 | 80 |
 | **Per-patch sum** | **1,188 / 2,000** |
 
-The other caps are **4 / 6 active C-class patches** and **8 / 25 distinct files**.
+The other caps are **4 / 6 active C-class patches** and **8 / 25 distinct
+files**.
 Counting the union of C-class paths once gives **734 changed lines**. That is a
 useful residual size, but the policy cap uses **1,188**: shared RPC paths count
 under each owning patch. Recompute at every sync; a breach stops the sync.
+
+## Corrective qualification checkpoint (2026-09-29)
+
+The corrective branch based on `ed29cdefc16323b91a5da97235e722cf52e480e3`
+adds narrow, explicitly approved C-class correctness patches
+[018 / #77](https://github.com/psmfd/pi/issues/77) (auth cache freshness) and
+[019 / #78](https://github.com/psmfd/pi/issues/78) (Chord insertion on Node 22).
+The [admission record](.psmfd/security-baseline.md#qualification-correctness-admissions-2026-09-29)
+waives generation ADR and consumer soak only for these two fixes.
+Current inventory is **13 active patches: 7 S-class and 6 C-class**.
+The earlier checkpoint above remains historical.
+
+| Patch | Insertions + deletions against upstream v0.87.1 |
+| --- | ---: |
+| 010 | 392 |
+| 011 | 439 |
+| 012 | 277 |
+| 013 | 80 |
+| 018 | 151 |
+| 019 | 78 |
+| **Per-patch sum** | **1,417 / 2,000** |
+
+The remaining caps are **6 / 6 C-class patches** and **12 / 25 distinct files**;
+the distinct-path union is **963 changed lines**. Both C-class patch slots are
+now occupied. These measurements include regression tests, count additions plus
+deletions, and do not change the existing cap policy.
+
+Local qualification used Node **22.23.3** (release major) and **24.19.0**:
+
+- The metadata-collision auth regressions failed before the fix; all **32 auth
+  tests** pass on both versions afterward. Same-content reads avoid repeated
+  locking/parsing but now read and hash the file. The cache digest describes the
+  locked parsed snapshot; raw credentials are not retained a second time.
+- The original **100,000-item** tracked append failed on Node 22 before the fix,
+  while native append and Node 24 controls passed. It now passes on both
+  versions
+  with exact content/delta/replay assertions. All **312 Chord tests** pass on
+  both,
+  including a 20,000-item middle insertion and native splice comparisons.
+- `npm run check` passes. The exact offline workspace release build and all
+  **four overlay build/preflight tests** pass on Node 22 using the 42 verified,
+  version-matched model JSON files. Credential-isolated `./test.sh` passes;
+  existing provider/platform skips remain. The final added middle-insertion
+  regression was then included in both full Chord runs.
+- Two earlier Node 22 Chord runs exceeded the unchanged coalescing timing ratio
+  threshold (42.15 and 51.74 versus 40). That flat-object test does not call the
+  changed insertion helper. A bounded alternating comparison passed three times
+  each on baseline and candidate; baseline full-delta and candidate full-suite
+  timing checks also passed. These observations retain timing variability as a
+  validation warning, not proof that the environment can never fail this check.
+- A bounded local performance probe (five measured samples after warmup) found
+  small-append median 15.3 ms baseline versus 23.1 ms candidate for 2,000 runs,
+  small-middle 15.1 versus 15.7 ms, and 20 large-middle runs 11.94 versus 11.98
+  ms.
+  These include tracking/flush overhead and are not a benchmark guarantee.
+  Indexed writes trade native insertion speed for avoiding nested argument
+  limits.
+
+The auth fix detects completed stable edits on the next read; it does not make
+writers that ignore the file lock transactional. Chord's public call remains
+subject to the engine's own argument-count limit. No dependency or version files
+changed. The earlier Vitest follow-up #72 and gondolin transitive-undici audit
+warnings remain; these correctness fixes are not dependency remediation.
+No paid-provider test, consumer soak, Bun/cross-platform artifact qualification,
+release attestation, publication, or live adoption is claimed. Source validation
+does not alone approve a release.
 
 ## Import topology
 
@@ -114,12 +185,16 @@ content baseline as well as inspecting actual merge ancestry and conflicts.
 Refreshing manifest `upstream_base` values does not repair the graph. History
 repair and sync-tool changes require separately scoped work.
 
-## Evidence limits
+## Historical reconciliation evidence limits
+
+The following describes the earlier static checkpoint; the corrective runtime
+evidence above supersedes its auth and Node-major validation gaps only.
 
 The checkpoint comparison attributes residual upstream source differences to
 the 11 active patches and verifies overlay/workflow quarantine boundaries.
 The manifest preserves earlier test, audit, and consumer evidence as historical;
-the 2026-09-29 reconciliation is a static source/metadata check, not a new runtime
+the 2026-09-29 reconciliation is a static source/metadata check, not a new
+runtime
 qualification, upstream-adoption determination, or release attestation.
 
 Existing PR #75 validation gaps remain: local Node 24 versus release Node 22,
@@ -138,6 +213,8 @@ Any runnable workflow must be explicitly classified, reviewed against the
 
 ## Release artifacts
 
-PSMFD release tags use `vX.Y.Z-psmfd.N` for PSMFD-built artifacts from a selected
+PSMFD release tags use `vX.Y.Z-psmfd.N` for PSMFD-built artifacts from a
+selected
 upstream base. Upstream source references are not PSMFD release attestations.
-Importing v0.87.1 source and reconciling these records does not publish a release.
+Importing v0.87.1 source and reconciling these records does not publish a
+release.
