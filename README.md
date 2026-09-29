@@ -12,16 +12,16 @@ Important boundaries:
 
 - This is **not** the upstream project.
 - This is **not** an official upstream release or support channel.
-- Upstream source history and tags are preserved for provenance.
-- PSMFD-owned changes are limited to mirror metadata, provenance, security
-  policy, and CI/release automation overlays.
-- Behavioral source patches are out of scope for this mirror.
+- Upstream source references are recorded for provenance; content import does
+  not always preserve upstream ancestry on `main`.
+- PSMFD carries approved overlays and bounded, manifest-tracked security and
+  capability source patches. See [the policy and import record](PROVENANCE.md).
 
 ## Purpose
 
 This mirror provides a public, auditable repository for PSMFD release work:
 
-- preserving the upstream pi source history used for PSMFD builds;
+- recording the upstream pi source baseline used for PSMFD builds;
 - documenting the relationship between upstream pi and PSMFD releases;
 - recording mirror-specific security and workflow policy;
 - keeping upstream GitHub Actions workflows as reference-only material unless
@@ -31,13 +31,15 @@ This mirror provides a public, auditable repository for PSMFD release work:
 ## What differs from upstream?
 
 | Path | Purpose |
-|---|---|
+| --- | --- |
 | `README.md` | PSMFD public landing page for this detached mirror. |
-| `PROVENANCE.md` | Mirror provenance, upstream relationship, and zero-divergence policy. |
+| `PROVENANCE.md` | Source provenance, import topology, and bounded patch policy. |
 | `README.psmfd.md` | Detailed PSMFD mirror notes and automation boundary. |
 | `SECURITY.md` | Security reporting and mirror integrity policy. |
 | `NOTICE.psmfd.md` | PSMFD notice for mirror-specific overlay content. |
 | `.psmfd/security-baseline.md` | Workflow, repository, and public-flip security baseline. |
+| `.psmfd/patches/manifest.yml` | Active security/capability patches and historical evidence. |
+| Manifest-listed source/test paths | Approved S-class and C-class source divergence. |
 | `.psmfd/overlay-allowlist.txt` | Paths PSMFD may intentionally modify in this mirror. |
 | `.gitleaks.toml` | Secret-scanning configuration for reviewed upstream-history findings. |
 | `.github/workflows/psmfd-*.yml/.yaml` | PSMFD-developed, adapted, or adopted workflows. |
@@ -59,12 +61,12 @@ use the upstream repository:
 
 ## Security and support
 
-Security concerns specific to PSMFD mirror automation, release artifacts,
+Security concerns specific to PSMFD source patches, automation, release artifacts,
 provenance, or attestations should follow this repository's
 [`SECURITY.md`](SECURITY.md).
 
 General upstream pi product behavior should be reported to the upstream project
-unless the issue is caused by PSMFD mirror overlays or PSMFD-published
+unless the issue is caused by PSMFD source patches, overlays, or PSMFD-published
 artifacts. If unsure, start with upstream product support rather than reporting
 upstream behavior as a PSMFD mirror vulnerability.
 
@@ -74,7 +76,7 @@ vulnerability information.
 ## Maintainer notes
 
 - Detailed mirror notes live in [`README.psmfd.md`](README.psmfd.md).
-- Mirror provenance and zero-divergence policy live in
+- Mirror provenance and bounded patch policy live in
   [`PROVENANCE.md`](PROVENANCE.md).
 - The current security baseline lives in
   [`.psmfd/security-baseline.md`](.psmfd/security-baseline.md).

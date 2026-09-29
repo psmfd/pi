@@ -9,13 +9,16 @@ visitors. This file carries the detailed PSMFD mirror notes.
 ## Relationship to upstream
 
 - This is **not** a GitHub fork network fork.
-- Upstream source history and tags are preserved.
-- PSMFD overlay files are additive and limited to repository metadata,
-  documentation, security policy, and CI/release automation.
-- Behavioral source patches are out of scope for this mirror.
+- Upstream source references are recorded; the v0.87.1 squash imported content
+  without bringing the upstream tag into `main` ancestry.
+- PSMFD overlays cover repository metadata, documentation, security policy, and
+  CI/release automation.
+- Manifest-tracked security (S-class) and capability (C-class) source patches
+  are bounded exceptions to zero divergence. At the 2026-09-29 checkpoint,
+  7 S-class and 4 C-class patches remain active.
 
 See [`PROVENANCE.md`](PROVENANCE.md) for the seed commit, trust statement, and
-zero-divergence policy.
+patch policy, measured caps, evidence limits, and next-sync ancestry caveat.
 
 ## PSMFD automation boundary
 
