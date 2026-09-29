@@ -435,12 +435,72 @@ describe("tracker: root ops", () => {
 		expect(t.flush()).toEqual([]);
 	});
 
+	// psmfd/pi#78: Node 22 must handle the original 100,000-item append without nested variadic calls.
 	it("accepts large append argument lists without spreading them internally", () => {
 		const t = track({ xs: [] as JsonValue[] });
 		t.flush();
-		const items = Array<JsonValue>(100_000).fill(null);
+		const items = Array.from({ length: 100_000 }, (_, index) => index);
+		const native: number[] = [];
+		expect(Reflect.apply(native.push, native, items)).toBe(items.length);
 		expect(Reflect.apply(t.state.xs.push, t.state.xs, items)).toBe(items.length);
-		expect(t.flush()).toEqual([["p", ["xs"], 0, 0, items]]);
+		const ops = t.flush();
+		expect(ops).toEqual([["p", ["xs"], 0, 0, items]]);
+		expect(t.state.xs).toEqual(native);
+		expect(apply({ xs: [] }, ops)).toEqual({ xs: native });
+	});
+
+	for (const index of [0, 2, 4]) {
+		for (const remove of [0, 1, 3]) {
+			for (const items of [[], [8], [8, 9, 10]]) {
+				it(`matches native splice at ${index}, removing ${remove}, inserting ${items.length}`, () => {
+					const initial = { xs: [0, 1, 2, 3] };
+					const native = [...initial.xs];
+					const t = track(structuredClone(initial));
+					t.flush();
+					expect(t.state.xs.splice(index, remove, ...items)).toEqual(native.splice(index, remove, ...items));
+					expect(t.state.xs).toEqual(native);
+					expect(apply(initial, t.flush())).toEqual({ xs: native });
+				});
+			}
+		}
+	}
+
+	it("inserts a large middle payload without reordering the tail", () => {
+		const initial = { xs: Array.from({ length: 20_000 }, (_, index) => index) };
+		const items = Array.from({ length: 20_000 }, (_, index) => -index - 1);
+		const native = [...initial.xs];
+		const t = track(structuredClone(initial));
+		t.flush();
+		const args = [10_000, 2, ...items];
+		expect(Reflect.apply(t.state.xs.splice, t.state.xs, args)).toEqual(Reflect.apply(native.splice, native, args));
+		expect(t.state.xs).toEqual(native);
+		expect(apply(initial, t.flush())).toEqual({ xs: native });
+	});
+
+	it("preserves existing sparse tail slots when inserting", () => {
+		const xs = [0, 1, 2, 3];
+		delete xs[2];
+		const native = xs.slice();
+		const t = track({ xs });
+		t.flush();
+		native.splice(1, 0, 8, 9);
+		t.state.xs.splice(1, 0, 8, 9);
+		expect(t.state.xs).toEqual(native);
+		expect(4 in t.state.xs).toBe(false);
+	});
+
+	it("folds replacements into pending insertions and an unflushed parent", () => {
+		for (const flushBase of [false, true]) {
+			const t = track({ xs: [{ value: 0 }] });
+			let replica = flushBase ? apply(undefined, t.flush()) : undefined;
+			t.state.xs.push({ value: 1 }, { value: 2 }, { value: 3 });
+			const held = t.state.xs[3]!;
+			t.state.xs.splice(1, 1, { value: 8 }, { value: 9 });
+			held.value = 30;
+			replica = apply(replica, t.flush());
+			expect(replica).toEqual({ xs: [{ value: 0 }, { value: 8 }, { value: 9 }, { value: 2 }, { value: 30 }] });
+			expect(replica).toEqual(t.state);
+		}
 	});
 
 	it("grows arrays with explicit null values", () => {

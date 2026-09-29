@@ -694,3 +694,75 @@ patches:
     upstream_fixed_in: null
     psmfd_commit: 2e5b4b1d19695d2f3a36c1b37db252e8950a171b
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-018
+    status: active
+    class: capability
+    upstream_base: v0.87.1
+    advisory: null
+    severity: null
+    reporting: >-
+      C-class correctness fix (psmfd/pi#77); no upstream submission made.
+      Upstream contributions remain human-led. Retire on upstream adoption
+      of equivalent behavior or when the patch is dropped.
+    description: >-
+      Auth cache freshness after same-metadata edits. Hash transient file content
+      with SHA-256 instead of trusting a stat revision, and bind the digest to
+      the same locked snapshot that is parsed. Preserve shared reloads,
+      cancellation, mutation invalidation and error fallback. Every file-backed
+      cache hit reads and hashes the file; no extra raw credentials are retained.
+      An extension cannot repair the private cache used by credential reads.
+      Explicit narrow maintainer admission on 2026-09-29 without a generation
+      ADR or consumer soak; see security-baseline.md.
+    patched_paths:
+      - packages/coding-agent/src/core/auth-storage.ts
+      - packages/coding-agent/test/auth-storage.test.ts
+    evidence: >-
+      2026-09-29 local qualification against upstream v0.87.1:
+      Deterministic metadata-collision regressions fail before the source fix;
+      auth tests pass afterward on Node 22. Coverage includes shared constructors,
+      unchanged-content lock avoidance, coalesced cancellation, all-reader abort,
+      locked-snapshot coherence, malformed/unreadable-file recovery and mutations.
+      Stable completed external edits are detected on the next read; this is not
+      transactional synchronization with writers that ignore the file lock.
+      No paid-provider or consumer soak claimed.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-019
+    status: active
+    class: capability
+    upstream_base: v0.87.1
+    advisory: null
+    severity: null
+    reporting: >-
+      C-class correctness fix (psmfd/pi#78); no upstream submission made.
+      Upstream contributions remain human-led. Retire on upstream adoption
+      of equivalent behavior or when the patch is dropped.
+    description: >-
+      Stack-safe tracked array insertion. Replace internal variadic insertion
+      with one backward tail shift and indexed writes; retain native removal,
+      sparse tail slots, proxy renumbering and operation replay. An extension
+      cannot replace Chord's private mutation/coalescing helper.
+      Explicit narrow maintainer admission on 2026-09-29 without a generation
+      ADR or consumer soak; see security-baseline.md.
+    patched_paths:
+      - packages/chord/src/delta/index.ts
+      - packages/chord/test/delta.test.ts
+    evidence: >-
+      2026-09-29 local qualification against upstream v0.87.1:
+      The original 100,000-item tracked append fails on Node 22 before the fix
+      while its native-array control passes. The corrected regression passes on
+      Node 22 and 24 with exact delta, content and replay assertions. Native splice
+      comparisons cover front/middle/end replacement, pending payload folding,
+      held references and sparse tail slots. The unrelated coalescing timing test
+      has a Node 22 validation gap; see PROVENANCE.md.
+      No paid-provider or consumer soak claimed.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

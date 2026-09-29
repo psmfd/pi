@@ -85,3 +85,9 @@ packages/coding-agent/test/rpc-session-start-dialog.test.ts
 # psmfd-patch-013 — stop warming after failed refreshes (psmfd/pi#74).
 packages/coding-agent/src/core/cache-warmer.ts
 packages/coding-agent/test/cache-warmer.test.ts
+# psmfd-patch-018 — qualification correctness (psmfd/pi#77).
+packages/coding-agent/src/core/auth-storage.ts
+packages/coding-agent/test/auth-storage.test.ts
+# psmfd-patch-019 — qualification correctness (psmfd/pi#78).
+packages/chord/src/delta/index.ts
+packages/chord/test/delta.test.ts

@@ -14,8 +14,10 @@ visitors. This file carries the detailed PSMFD mirror notes.
 - PSMFD overlays cover repository metadata, documentation, security policy, and
   CI/release automation.
 - Manifest-tracked security (S-class) and capability (C-class) source patches
-  are bounded exceptions to zero divergence. At the 2026-09-29 checkpoint,
-  7 S-class and 4 C-class patches remain active.
+  are bounded exceptions to zero divergence. At the 2026-09-29 corrective checkpoint,
+  7 S-class and 6 C-class patches remain active. Patches 018 and 019 correct
+  auth-cache freshness and Node 22 Chord insertion; all C-class patch slots are
+  occupied. See the provenance checkpoint for validation and remaining limits.
 
 See [`PROVENANCE.md`](PROVENANCE.md) for the seed commit, trust statement, and
 patch policy, measured caps, evidence limits, and next-sync ancestry caveat.
