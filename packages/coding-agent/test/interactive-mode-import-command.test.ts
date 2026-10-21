@@ -10,6 +10,7 @@ type InteractiveModePrototype = {
 };
 
 type ImportCommandContext = {
+	rejectManagedOperation: (operation: string) => boolean;
 	clearStatusIndicator: () => void;
 	runtimeHost: { importFromJsonl: (inputPath: string, cwdOverride?: string) => Promise<{ cancelled: boolean }> };
 	showError: (message: string) => void;
@@ -57,6 +58,7 @@ describe("InteractiveMode /import parsing", () => {
 		const showError = vi.fn();
 
 		const context: ImportCommandContext = {
+			rejectManagedOperation: () => false,
 			clearStatusIndicator: vi.fn(),
 			runtimeHost: { importFromJsonl },
 			showError,
@@ -89,6 +91,7 @@ describe("InteractiveMode /import parsing", () => {
 		const showError = vi.fn();
 
 		const context: ImportCommandContext = {
+			rejectManagedOperation: () => false,
 			clearStatusIndicator: vi.fn(),
 			runtimeHost: { importFromJsonl },
 			showError,
@@ -122,6 +125,7 @@ describe("InteractiveMode /import parsing", () => {
 		});
 
 		const context: ImportCommandContext = {
+			rejectManagedOperation: () => false,
 			clearStatusIndicator: vi.fn(),
 			runtimeHost: { importFromJsonl },
 			showError,

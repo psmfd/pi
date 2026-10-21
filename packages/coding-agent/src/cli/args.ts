@@ -11,6 +11,7 @@ import type { TuiMode } from "../core/settings-manager.ts";
 export type Mode = "text" | "json" | "rpc";
 
 export interface Args {
+	startupPolicy?: string;
 	provider?: string;
 	model?: string;
 	apiKey?: string;
@@ -88,6 +89,11 @@ export function parseArgs(args: string[]): Args {
 				}
 			}
 			break;
+		} else if (arg === "--startup-policy" || arg.startsWith("--startup-policy=")) {
+			if (result.startupPolicy !== undefined) {
+				result.diagnostics.push({ type: "error", message: "Duplicate --startup-policy" });
+			}
+			result.startupPolicy = arg === "--startup-policy" ? (args[++i] ?? "") : arg.slice("--startup-policy=".length);
 		} else if (arg === "--help" || arg === "-h") {
 			result.help = true;
 		} else if (arg === "--version" || arg === "-v") {
@@ -275,6 +281,7 @@ ${chalk.bold("Commands:")}
   ${APP_NAME} <command> --help          Show help for install/remove/uninstall/update/list/config/auth
 
 ${chalk.bold("Options:")}
+  --startup-policy managed-v1    Use explicit, host-selected startup inputs only
   --provider <name>              Provider name (default: google)
   --model <pattern>              Model pattern or ID (supports "provider/id" and optional ":<thinking>")
   --api-key <key>                API key (defaults to env vars)

@@ -3,7 +3,9 @@ import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { Model } from "@earendil-works/pi-ai";
 import { getAgentDir } from "../config.ts";
 import { resolvePath } from "../utils/paths.ts";
+import { AuthStorage } from "./auth-storage.ts";
 import type { SessionStartEvent, ToolDefinition } from "./extensions/index.ts";
+import { ManagedResourceLoader } from "./managed-resource-loader.ts";
 import { ModelRuntime } from "./model-runtime.ts";
 import {
 	DefaultResourceLoader,
@@ -14,6 +16,7 @@ import {
 import { type CreateAgentSessionOptions, type CreateAgentSessionResult, createAgentSession } from "./sdk.ts";
 import type { SessionManager } from "./session-manager.ts";
 import { SettingsManager } from "./settings-manager.ts";
+import type { ManagedStartupPolicy } from "./startup-policy.ts";
 
 /**
  * Non-fatal issues collected while creating services or sessions.
@@ -35,6 +38,7 @@ export interface AgentSessionRuntimeDiagnostic {
  * reach this function, so later cwd switches do not reinterpret them.
  */
 export interface CreateAgentSessionServicesOptions {
+	startupPolicy?: ManagedStartupPolicy;
 	cwd: string;
 	agentDir?: string;
 	settingsManager?: SettingsManager;
@@ -71,6 +75,7 @@ export interface CreateAgentSessionFromServicesOptions {
  * session options can be resolved against these services first.
  */
 export interface AgentSessionServices {
+	readonly startupPolicy?: ManagedStartupPolicy;
 	cwd: string;
 	agentDir: string;
 	modelRuntime: ModelRuntime;
@@ -137,20 +142,30 @@ export async function createAgentSessionServices(
 ): Promise<AgentSessionServices> {
 	const cwd = resolvePath(options.cwd);
 	const agentDir = options.agentDir ? resolvePath(options.agentDir) : getAgentDir();
+	const policy = options.startupPolicy;
+	if (policy && (cwd !== policy.cwd || agentDir !== policy.agentDir)) {
+		throw new Error("managed-v1 cannot change runtime roots");
+	}
+	if (policy && options.modelRuntime) throw new Error("managed-v1 requires an in-memory model runtime");
 	const modelRuntime =
 		options.modelRuntime ??
 		(await ModelRuntime.create({
-			authPath: join(agentDir, "auth.json"),
-			modelsPath: join(agentDir, "models.json"),
+			credentials: policy ? AuthStorage.inMemory() : undefined,
+			authPath: policy ? undefined : join(agentDir, "auth.json"),
+			modelsPath: policy ? null : join(agentDir, "models.json"),
 			signal: options.modelRuntimeSignal,
 		}));
-	const settingsManager = options.settingsManager ?? SettingsManager.create(cwd, agentDir);
-	const resourceLoader = new DefaultResourceLoader({
-		...(options.resourceLoaderOptions ?? {}),
-		cwd,
-		agentDir,
-		settingsManager,
-	});
+	const settingsManager = policy
+		? SettingsManager.inMemory({ theme: "dark" }, { projectTrusted: false })
+		: (options.settingsManager ?? SettingsManager.create(cwd, agentDir));
+	const resourceLoader: ResourceLoader = policy
+		? new ManagedResourceLoader(policy)
+		: new DefaultResourceLoader({
+				...(options.resourceLoaderOptions ?? {}),
+				cwd,
+				agentDir,
+				settingsManager,
+			});
 	await resourceLoader.reload(options.resourceLoaderReloadOptions);
 
 	const diagnostics: AgentSessionRuntimeDiagnostic[] = [];
@@ -183,6 +198,7 @@ export async function createAgentSessionServices(
 	diagnostics.push(...applyExtensionFlagValues(resourceLoader, options.extensionFlagValues));
 
 	return {
+		startupPolicy: policy,
 		cwd,
 		agentDir,
 		modelRuntime,
