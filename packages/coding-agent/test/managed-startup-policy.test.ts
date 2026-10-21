@@ -105,7 +105,7 @@ describe("managed-v1 startup policy", () => {
 		const explicit = join(root, "explicit.mjs");
 		writeFileSync(
 			explicit,
-			`import { appendFileSync } from "node:fs"; export default () => appendFileSync(${JSON.stringify(log)}, "load\\n");`,
+			`import { appendFileSync } from "node:fs"; export default () => appendFileSync(new URL("./loads.txt", import.meta.url), "load\\n");`,
 		);
 		mkdirSync(join(cwd, ".pi", "extensions"), { recursive: true });
 		writeFileSync(join(cwd, ".pi", "extensions", "bad.mjs"), "throw new Error('ambient loaded');");
