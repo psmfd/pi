@@ -218,3 +218,46 @@ selected
 upstream base. Upstream source references are not PSMFD release attestations.
 Importing v0.87.1 source and reconciling these records does not publish a
 release.
+
+## Pi 1.3.0 preparation (2026-10-21)
+
+FingerTrap #210 selects latest stable upstream `v1.3.0`, commit
+`71023aec1546d6d677a65669c5665c0927ce0dd0`. The maintained managed-startup
+reference is `95e95f0eca5dd6638f4e8c308932134a6d071798`; its production source
+equals the previously qualified `1f37eea`. This candidate imports upstream
+content using the recorded v0.87.1 content baseline, rather than treating the
+older squash merge base as the previous imported content. Its new merge records
+both exact parents; no earlier history is rewritten.
+
+Proposed retirement 016/017 follows upstream's removal of the experimental
+harness at `7fd478a2e`; no obsolete code is restored. Proposed retirement 019
+follows upstream's immutable tracker replacement: on Node 22.23.0 the original
+100,000-item append reproduces RangeError, while unmodified v1.3.0 passes exact
+content/replay/adoption, 27 splice controls and 20,000-item middle insertion.
+Retirement is integrated only when the candidate is merged.
+
+Retained C-class accounting is 6 patches / 23 distinct paths / 2,021 additions
+plus deletions against v1.3.0: 010=392, 011=439, 012=277, 013=80, 018=151,
+020=682. Shared paths count per owner. ADR-0039's 7 / 25 / 2,200 ceiling and
+the original budget for patches other than 020 remain unchanged.
+
+Patch 003 independently refreshes the sandbox example lock to shell-quote
+1.12.0. Pending S-class 021 pins Vite 8.1.6 for the editor-injection advisories.
+Root runtime install-lock contains neither Vite nor gondolin/node-forge;
+example/development findings remain explicitly separate from executable
+qualification. Do not interpret that distinction as a blanket audit waiver.
+
+The release block now matches v1.3.0 workspace order, uses TypeScript 7,
+validates/copies pinned model JSON, and selects upstream's Bun 1.3.14. The old
+order fails the retained order guard; corrected order and both preflight tests
+pass. Linux/Bubblewrap integration and publication remain separate gates.
+All 13 upstream workflows are quarantined as references; only the previously
+approved PSMFD workflow family remains runnable. This is an unpublished
+qualification candidate, not a release, pin or managed-product activation.
+
+Pi #83 security review registers pending S-class 022 (catalog regex), 023
+(HTTP/credential error disclosure) and 024 (streamed JSON prototype pollution)
+for CodeQL alerts 88/92/93/95. Both guard data sets and the text allowlist admit
+only their manifest paths. Guard logic and C-class ceilings are unchanged.
+False-positive alert dispositions require retained proof; no broad exclusion is
+added. Candidate binaries are rebuilt and requalified after source corrections.

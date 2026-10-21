@@ -52,7 +52,7 @@ patches:
   - id: psmfd-patch-001
     status: active
     class: security
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: "CodeQL js/second-order-command-line-injection (psmfd/pi alerts 19, 22)"
     severity: high
     reporting: >-
@@ -86,6 +86,7 @@ patches:
       Unsafe-ref checks and fetch/checkout option boundaries remain in the
       source and regression paths.
       This comparison did not rerun runtime tests or consumer soak.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical. Pinned temporary-cache fixture uses the pinned source identity required by upstream; the stale fixture also fails with unmodified upstream package-manager code. Safe git option-boundary assertions remain.
     upstream_issue: "https://github.com/psmfd/pi/issues/7"
     upstream_pr: null
     upstream_fixed_in: null
@@ -125,8 +126,8 @@ patches:
   - id: psmfd-patch-003
     status: active
     class: security
-    upstream_base: v0.87.1
-    advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p; GHSA-395f-4hp3-45gv (quadratic DoS in parse(), <= 1.8.4, published 2026-07-20)"
+    upstream_base: v1.3.0
+    advisory: "CVE-2026-9277 / GHSA-w7jw-789q-3m8p; GHSA-395f-4hp3-45gv; GHSA-pqg4-j6r4-53mv"
     severity: critical
     reporting: >-
       Not reported (ADR-0043). Out of upstream SECURITY.md scope: transitive
@@ -141,7 +142,9 @@ patches:
       lockfile still carries 1.8.3 as of v0.83.0. Fix: pin shell-quote 1.8.4 in the sandbox
       lockfile. REFRESHED post-v0.81.1 sync: GHSA-395f-4hp3-45gv (published
       2026-07-20) widens the vulnerable range to <= 1.8.4 (patched 1.9.0), so
-      the pin is raised to 1.10.0 (still satisfies the parent ^1.8.3 range).
+      the historical pin was raised to 1.10.0. The 2026-10-21 campaign raises
+      the current pin to 1.12.0 for GHSA-pqg4-j6r4-53mv (affected <1.11.0),
+      still satisfying the parent ^1.8.3 range.
     patched_paths:
       - packages/coding-agent/examples/extensions/sandbox/package-lock.json
     evidence: >-
@@ -155,6 +158,7 @@ patches:
       The sandbox lockfile still differs from upstream shell-quote 1.8.3 by
       pinning 1.10.0; no new registry or audit run.
       This comparison did not rerun runtime tests or consumer soak.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical. Nested sandbox lock refreshed independently to shell-quote 1.12.0, fixing the later comment-token injection advisory (affected <1.11.0). Its already-exact manifest dependency is reflected in lock root metadata. Root workspace audit does not cover this separate lock. Upstream v1.3.0 and current main still lock the sandbox example to 1.8.3; no open shell-quote fix PR found.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
@@ -191,7 +195,7 @@ patches:
   - id: psmfd-patch-005
     status: active
     class: security
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: "CodeQL js/shell-command-constructed-from-input (psmfd/pi alerts 33-37)"
     severity: medium
     reporting: >-
@@ -229,6 +233,7 @@ patches:
       Clone option boundaries and host/path/transport rejection remain in
       the source and regression paths.
       This comparison did not rerun runtime tests or consumer soak.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
@@ -384,7 +389,7 @@ patches:
   - id: psmfd-patch-010
     status: active
     class: capability
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: null
     severity: null
     reporting: >-
@@ -423,6 +428,7 @@ patches:
       The hello frame, client readiness gates, and clear_queue advertisement
       remain in the source and regression paths.
       This comparison did not rerun runtime tests or consumer soak.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
@@ -432,7 +438,7 @@ patches:
   - id: psmfd-patch-011
     status: active
     class: capability
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: null
     severity: null
     reporting: >-
@@ -466,6 +472,7 @@ patches:
       The header-only session projection, capability advertisement, and
       typed client method remain in the source and regression paths.
       This comparison did not rerun runtime tests or consumer soak.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
@@ -475,7 +482,7 @@ patches:
   - id: psmfd-patch-012
     status: active
     class: capability
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: null
     severity: null
     reporting: >-
@@ -510,6 +517,7 @@ patches:
       The early reader, UI-response handling, and buffered command/EOF
       replay remain in the source and regression paths.
       This comparison did not rerun runtime tests or consumer soak.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
@@ -519,7 +527,7 @@ patches:
   - id: psmfd-patch-013
     status: active
     class: capability
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: null
     severity: null
     reporting: >-
@@ -554,6 +562,7 @@ patches:
       This comparison did not rerun runtime tests or consumer soak.
       Supporting PR #74 patch commit: 5f34590e8e1b62e5789f9076d176e51b4f405890.
       psmfd_commit records the mainline squash, not that original PR commit.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
@@ -563,7 +572,7 @@ patches:
   - id: psmfd-patch-014
     status: active
     class: security
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: "CodeQL js/polynomial-redos (psmfd/pi alert 82)"
     severity: high
     reporting: >-
@@ -587,6 +596,7 @@ patches:
       This comparison did not rerun runtime tests or consumer soak.
       Supporting PR #74 patch commit: 95660570efdc015d90ce218a5284a9659ce17f8a.
       psmfd_commit records the mainline squash, not that original PR commit.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
@@ -596,7 +606,7 @@ patches:
   - id: psmfd-patch-015
     status: active
     class: security
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: "CodeQL js/polynomial-redos (psmfd/pi alert 83)"
     severity: high
     reporting: >-
@@ -620,6 +630,7 @@ patches:
       This comparison did not rerun runtime tests or consumer soak.
       Supporting PR #74 patch commit: 95660570efdc015d90ce218a5284a9659ce17f8a.
       psmfd_commit records the mainline squash, not that original PR commit.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_fixed_in: null
@@ -627,9 +638,9 @@ patches:
     psmfd_retire_commit: null
 
   - id: psmfd-patch-016
-    status: active
+    status: retired
     class: security
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: "CodeQL js/polynomial-redos (psmfd/pi alert 60)"
     severity: high
     reporting: >-
@@ -653,16 +664,17 @@ patches:
       This comparison did not rerun runtime tests or consumer soak.
       Supporting PR #74 patch commit: 95660570efdc015d90ce218a5284a9659ce17f8a.
       psmfd_commit records the mainline squash, not that original PR commit.
+      2026-10-21 candidate reconciliation: upstream removed the experimental harness and vulnerable target paths (7fd478a2e); no obsolete implementation is restored. Retirement becomes integrated only when this candidate is merged.
     upstream_issue: null
     upstream_pr: null
-    upstream_fixed_in: null
+    upstream_fixed_in: v1.3.0
     psmfd_commit: 2e5b4b1d19695d2f3a36c1b37db252e8950a171b
     psmfd_retire_commit: null
 
   - id: psmfd-patch-017
-    status: active
+    status: retired
     class: security
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: "CodeQL js/prototype-polluting-assignment (psmfd/pi alert 86)"
     severity: medium
     reporting: >-
@@ -689,16 +701,17 @@ patches:
       This comparison did not rerun runtime tests or consumer soak.
       Supporting PR #74 patch commit: 95660570efdc015d90ce218a5284a9659ce17f8a.
       psmfd_commit records the mainline squash, not that original PR commit.
+      2026-10-21 candidate reconciliation: upstream removed the experimental harness and vulnerable target paths (7fd478a2e); no obsolete implementation is restored. Retirement becomes integrated only when this candidate is merged.
     upstream_issue: null
     upstream_pr: null
-    upstream_fixed_in: null
+    upstream_fixed_in: v1.3.0
     psmfd_commit: 2e5b4b1d19695d2f3a36c1b37db252e8950a171b
     psmfd_retire_commit: null
 
   - id: psmfd-patch-018
     status: active
     class: capability
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: null
     severity: null
     reporting: >-
@@ -726,6 +739,7 @@ patches:
       Stable completed external edits are detected on the next read; this is not
       transactional synchronization with writers that ignore the file lock.
       No paid-provider or consumer soak claimed.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
@@ -733,9 +747,9 @@ patches:
     psmfd_retire_commit: null
 
   - id: psmfd-patch-019
-    status: active
+    status: retired
     class: capability
-    upstream_base: v0.87.1
+    upstream_base: v1.3.0
     advisory: null
     severity: null
     reporting: >-
@@ -761,8 +775,174 @@ patches:
       held references and sparse tail slots. The unrelated coalescing timing test
       has a Node 22 validation gap; see PROVENANCE.md.
       No paid-provider or consumer soak claimed.
+      2026-10-21 candidate reconciliation: upstream replaced mutable tracking with its immutable tracker. On Node 22.23.0 the old 100000-item append fails with RangeError; unmodified v1.3.0 passes exact content, replay/adoption, 27 splice cases and 20000-item middle insertion. No Chord diff is retained. Retirement becomes integrated only on candidate merge.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: v1.3.0
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-020
+    status: pending
+    class: capability
+    upstream_base: v1.3.0
+    advisory: null
+    severity: null
+    reporting: >-
+      Not reported upstream. Host mechanism admitted by FingerTrap ADR-0038;
+      maintained-base forward-port and bounded cap exception by ADR-0039.
+      Upstream contribution remains human-led and separate.
+    description: >-
+      Explicit managed-v1 startup policy (psmfd/pi#80): validate immutable
+      launch inputs before migrations/command dispatch, construct in-memory
+      configuration, load only selected extensions with a literal prompt,
+      and retain that policy through reload and supported new-session flows.
+      Disable implicit crash discovery/recording and cache warming; reject
+      unsupported config/auth/session/bug-report operations. Extensions cannot
+      prevent discovery before they load. This is not an OS sandbox.
+      Pending means not merged or approved for a production pin.
+    patched_paths:
+      - packages/coding-agent/docs/cli-integration.md
+      - packages/coding-agent/src/cli/args.ts
+      - packages/coding-agent/src/core/agent-session-runtime.ts
+      - packages/coding-agent/src/core/agent-session-services.ts
+      - packages/coding-agent/src/core/managed-resource-loader.ts
+      - packages/coding-agent/src/core/startup-policy.ts
+      - packages/coding-agent/src/main.ts
+      - packages/coding-agent/src/modes/interactive/interactive-mode.ts
+      - packages/coding-agent/src/modes/interactive/theme/theme-controller.ts
+      - packages/coding-agent/test/interactive-mode-clone-command.test.ts
+      - packages/coding-agent/test/interactive-mode-import-command.test.ts
+      - packages/coding-agent/test/managed-startup-policy.test.ts
+      - packages/coding-agent/test/theme-controller.test.ts
+    evidence: >-
+      Forward-port on maintained main 42429b94e4aca33fdbb8d094de29758b36411ba1;
+      preserves all existing security/correctness patches. The original
+      0.85.1 experiment remains on PR #81 for historical comparison only.
+      Regression fixtures reproduce persisted-crash mutation and cache-warming
+      default before the maintained-base corrections. Exact-artifact evidence
+      and fresh patch accounting are retained in FingerTrap PR #209 under
+      docs/migration/evidence/s3-managed-startup-maintained/.
+      ADR-0039 allows only patch 020 to increase the aggregate maximum to
+      7 C-class patches / 2200 per-patch changed lines / 25 distinct paths.
+      Recount at every sync; no S-class relabeling or trusted-sync bypass.
+      2026-10-21 source port to v1.3.0 (71023aec1546d6d677a65669c5665c0927ce0dd0), preserving new upstream behavior. FingerTrap #210 retains exact port, conflict and qualification evidence; previous evidence above remains historical.
     upstream_issue: null
     upstream_pr: null
     upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-021
+    status: pending
+    class: security
+    upstream_base: v1.3.0
+    advisory: "GHSA-698v-4r3x-3vcv; GHSA-r825-w8mm-5pxw; GHSA-587h-7wmj-h5pm"
+    severity: high
+    reporting: >-
+      Not reported upstream. Development-only Vite dependency; no core runtime
+      install-lock reachability. Current upstream main bd3c9b823762b7383954aa49e13ee350471015fe
+      still resolves Vite 8.0.16 and no open Vite fix PR was found on 2026-10-21.
+      Upstream submission remains human-led.
+    description: >-
+      Pin transitive Vite through an exact root override to 8.1.6, which bundles
+      launch-editor 2.14.2 and fixes the Windows editor command injection
+      advisories. Version was published 2026-10-06, outside the two-day age gate.
+      Required transitive development resolutions are reviewed with the lock.
+    patched_paths:
+      - package.json
+      - package-lock.json
+    evidence: >-
+      Baseline 1.3.0 audit reports Vite 8.0.16 affected; exact 8.1.6 registry
+      integrity matches the refreshed lock. Root npm audit removes Vite after
+      explicit re-resolution. Remaining gondolin/node-forge findings have no
+      published upstream fix and require separate reachability disposition.
+      Qualification and audit evidence is retained by FingerTrap #210.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-022
+    status: pending
+    class: security
+    upstream_base: v1.3.0
+    advisory: "CodeQL js/polynomial-redos (psmfd/pi alert 88)"
+    severity: high
+    reporting: >-
+      No upstream report sent. Private reporting assessment remains for the
+      maintainer under upstream SECURITY.md; upstream contributions are human-led.
+      On 2026-10-21, latest main bd3c9b823762b7383954aa49e13ee350471015fe
+      retains the affected source; open fix-PR searches found no relevant fix.
+    description: >-
+      Remove redundant whitespace repetitions before fields that already accept whitespace. Preserve accepted User-Agent syntax while avoiding quadratic backtracking on missing closing parentheses.
+    patched_paths:
+      - scripts/model-catalog-protocol.ts
+    evidence: >-
+      FingerTrap #210 retains CodeQL traces, red/green regression output and
+      exact candidate requalification. Real-input controls are retained in
+      .psmfd/test/security-1.3.test.mjs; credential resolution has its own test.
+      Source findings are fixed rather than dismissed. Integration and release
+      remain subject to maintainer review; pending is not a merge approval.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-023
+    status: pending
+    class: security
+    upstream_base: v1.3.0
+    advisory: "CodeQL js/stack-trace-exposure; js/clear-text-logging (psmfd/pi alerts 92, 93)"
+    severity: high
+    reporting: >-
+      No upstream report sent. Private reporting assessment remains for the
+      maintainer under upstream SECURITY.md; upstream contributions are human-led.
+      On 2026-10-21, latest main bd3c9b823762b7383954aa49e13ee350471015fe
+      retains the affected source; open fix-PR searches found no relevant fix.
+    description: >-
+      Return a generic triage HTTP 500 response while preserving server-side diagnostics. Do not include failed credential command text in thrown errors: it can contain literal secrets.
+    patched_paths:
+      - scripts/issues/main.ts
+      - packages/coding-agent/src/core/resolve-config-value.ts
+      - packages/coding-agent/test/resolve-config-value.test.ts
+    evidence: >-
+      FingerTrap #210 retains CodeQL traces, red/green regression output and
+      exact candidate requalification. Real-input controls are retained in
+      .psmfd/test/security-1.3.test.mjs; credential resolution has its own test.
+      Source findings are fixed rather than dismissed. Integration and release
+      remain subject to maintainer review; pending is not a merge approval.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-024
+    status: pending
+    class: security
+    upstream_base: v1.3.0
+    advisory: "CodeQL js/prototype-pollution-utility (psmfd/pi alert 95)"
+    severity: medium
+    reporting: >-
+      No upstream report sent. Private reporting assessment remains for the
+      maintainer under upstream SECURITY.md; upstream contributions are human-led.
+      On 2026-10-21, latest main bd3c9b823762b7383954aa49e13ee350471015fe
+      retains the affected source; open fix-PR searches found no relevant fix.
+    description: >-
+      Never recurse into inherited slots. Reject direct reserved assignment keys and assign a record containing reserved keys as one data value. Preserve such JSON data through Chord preparation, replay and adoption without modifying Object.prototype.
+    patched_paths:
+      - packages/durable/src/harness/json.ts
+    evidence: >-
+      FingerTrap #210 retains CodeQL traces, red/green regression output and
+      exact candidate requalification. Real-input controls are retained in
+      .psmfd/test/security-1.3.test.mjs; credential resolution has its own test.
+      Source findings are fixed rather than dismissed. Integration and release
+      remain subject to maintainer review; pending is not a merge approval.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
     psmfd_commit: null
     psmfd_retire_commit: null

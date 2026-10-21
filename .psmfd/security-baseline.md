@@ -239,6 +239,24 @@ C-class caps, manifest/allowlist/guard parity, and normal maintainer review.
 They do not broaden general eligibility or the trusted-sync bypass. Neither is
 classified as a security finding. Upstream submission remains human-led.
 
+### Managed-startup admission (2026-10-21)
+
+The maintainer approved the managed-startup forward-port and bounded cap
+resolution under [FingerTrap ADR-0039](https://github.com/psmfd/FingerTrap/blob/feat/managed-pi-startup/adrs/0039-qualify-managed-pi-on-maintained-base.md).
+Only patch 020 may increase the aggregate maximum to **7 C-class patches,
+2,200 per-patch insertions plus deletions, and 25 distinct upstream paths**.
+The other six patches remain subject to their existing eligibility and
+2,000-line budget. Include pending 020 in qualification accounting; no extra
+patch slot or file exemption is granted. This exception expires when 020 is
+dropped or upstream adopts equivalent behavior. Reevaluate and recount at
+every sync, including the next latest-release campaign; a breach stops it.
+
+Use upstream v0.87.1 (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) for this
+candidate's residual diff, summing additions plus deletions for each patch's
+paths, including shared paths under every owner. Keep manifest/text/both guard
+sets identical. Guard logic, security classification, trusted-sync conditions,
+review requirements and production promotion gates remain unchanged.
+
 ## Upstream reporting gate
 
 Fixing a security finding in the mirror and reporting it upstream are separate
@@ -270,3 +288,32 @@ Consequences for this mirror:
   (`reporting:` field). "Not reported" is a logged decision, not an omission.
 - The current patches (`psmfd-patch-001`..`004`) were all assessed **out of
   upstream scope → not reported**; see their manifest entries.
+
+## Pi 1.3.0 candidate reconciliation (2026-10-21)
+
+FingerTrap #210 retains all admitted mechanisms while importing v1.3.0.
+Proposed retirements 016/017 follow upstream removal of their experimental
+harness targets; 019 follows a verified replacement without the Node 22
+overflow. No old implementation is restored or relabeled. Remaining capability
+accounting is 6 / 23 / 2,021, with 020 at 682 lines; the existing ceiling is
+unchanged. Manifest, text and both guard data sets must agree.
+
+Patch 003 now pins shell-quote 1.12.0 in the separate sandbox lock. Pending
+security patch 021 admits only package.json/package-lock.json for the exact
+Vite 8.1.6 security override. Upstream current main still uses 8.0.16; no open
+upstream Vite fix PR was found at review. Both changes address named advisories,
+not general dependency refresh. Runtime install-lock excludes these example/
+development dependencies. Remaining gondolin/node-forge findings need recorded
+reachability disposition and remain visible; no unrestricted audit exception.
+
+Release build instructions preserve inline workspace selection and the
+attestation boundary. The reviewed update tracks upstream workspace order,
+TypeScript 7, model-data copying and Bun 1.3.14. No release workflow is
+dispatched by this qualification. Upstream workflows remain reference-only.
+
+Pi #83 security review registers pending S-class 022 (catalog regex), 023
+(HTTP/credential error disclosure) and 024 (streamed JSON prototype pollution)
+for CodeQL alerts 88/92/93/95. Both guard data sets and the text allowlist admit
+only their manifest paths. Guard logic and C-class ceilings are unchanged.
+False-positive alert dispositions require retained proof; no broad exclusion is
+added. Candidate binaries are rebuilt and requalified after source corrections.

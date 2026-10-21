@@ -21,10 +21,11 @@ assert.ok(!script.includes("${{"), "build expressions need explicit test handlin
 
 const commands = script.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
 assert.equal(commands.shift(), "set -euo pipefail");
+const aiBuild = "node scripts/check-model-data.ts && npx tsc -p tsconfig.build.json && mkdir -p dist/providers/data && cp -R src/providers/data/. dist/providers/data/";
 const sequence = commands.map((command) => {
-	const match = /^\(cd (packages\/[a-z/-]+) && (npm run build|npx tsgo -p tsconfig\.build\.json)\)$/.exec(command);
+	const match = /^\(cd (packages\/[a-z/-]+) && (.+)\)$/.exec(command);
 	assert.ok(match, `unmodeled release command: ${command}`);
-	assert.equal(match[2], match[1] === "packages/ai" ? "npx tsgo -p tsconfig.build.json" : "npm run build");
+	assert.equal(match[2], match[1] === "packages/ai" ? aiBuild : "npm run build");
 	return match[1];
 });
 const rootBuild = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts.build.split(" && ");
