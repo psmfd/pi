@@ -2,6 +2,28 @@
 # Canonical list of workflows approved to run in psmfd/pi.
 version: 1
 workflows:
+  - path: .github/workflows/psmfd-candidate-qualification.yml
+    classification: psmfd-developed
+    purpose: >-
+      Run the retained Linux/Bubblewrap release-build qualification and negative
+      controls for the Pi 1.3.0 candidate requested in FingerTrap #210.
+    approved_by: PSMFD
+    approval_reference: "Maintainer request for latest-Pi qualification, 2026-10-21; FingerTrap #210"
+    review:
+      triggers_reviewed: true
+      permissions_reviewed: true
+      secrets_reviewed: true
+      third_party_actions_reviewed: true
+      release_behavior_reviewed: true
+      notes: >-
+        Same-repository sync/upstream-v1.3.0 PR only; exact head checkout,
+        contents:read, no persisted credentials, secrets, artifacts or release.
+        Existing SHA-pinned checkout/setup-node actions, Node 22, no shared cache.
+        npm ci/pack disable lifecycle scripts; model archive SHA-256 is fixed.
+        Bubblewrap runs on a disposable hosted Ubuntu runner with namespace
+        privileges; the retained harness clears the build environment and mounts
+        only system tools, Node and a disposable fixture. No protection changes
+        or alteration of FingerTrap's existing platform routes.
   - path: .github/workflows/psmfd-zero-divergence.yml
     classification: psmfd-developed
     purpose: Enforce that normal PRs only change approved PSMFD overlay paths.

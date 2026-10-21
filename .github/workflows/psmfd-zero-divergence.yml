@@ -72,39 +72,18 @@ jobs:
           # allowlist data only; it does not change the guard's trust model, and
           # every such change still requires maintainer review before merge.
           SECURITY_PATCH_PATHS = {
-              # psmfd-patch-014 — CodeQL 82 (PR 74).
+              "package-lock.json",
+              "package.json",
               "packages/ai/src/utils/overflow.ts",
               "packages/ai/test/overflow-performance.test.ts",
-              # psmfd-patch-015 — CodeQL 83 (PR 74).
-              "packages/tui/src/latex.ts",
-              "packages/tui/test/latex-performance.test.ts",
-              # psmfd-patch-016 — CodeQL 60 (PR 74).
-              "packages/agent/src/harness/skills.ts",
-              "packages/agent/test/harness/skills-performance.test.ts",
-              # psmfd-patch-017 — CodeQL 86 (PR 74).
-              "packages/agent/src/harness/pico3/tool-slot.ts",
-              "packages/agent/src/harness/pico3/kinds/tool.ts",
-              "packages/agent/src/harness/pico3/session.ts",
-              "packages/agent/src/harness/pico3/harness.ts",
-              "packages/agent/test/harness/pico3/tool-slot.test.ts",
-              # psmfd-patch-001 — git-ref flag injection (CodeQL 19/22).
-              # These five paths are SHARED with psmfd-patch-005 (git transport
-              # hardening); both active. Do not remove while either is active.
-              "packages/coding-agent/src/utils/git.ts",
+              "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
               "packages/coding-agent/src/core/package-manager.ts",
+              "packages/coding-agent/src/utils/git.ts",
               "packages/coding-agent/test/git-ssh-url.test.ts",
               "packages/coding-agent/test/git-update.test.ts",
               "packages/coding-agent/test/package-manager.test.ts",
-              # psmfd-patch-003 — shell-quote CVE-2026-9277 + GHSA-395f-4hp3-45gv
-              # (sandbox lockfile); upstream STILL ships 1.8.3 at v0.85.1, active.
-              "packages/coding-agent/examples/extensions/sandbox/package-lock.json",
-              # psmfd-patch-008/009 RETIRED at the v0.84.1 sync — upstream v0.84.0
-              # ships brace-expansion 5.0.9 (>= our 5.0.8 pin) and root shell-quote
-              # 1.10.0 (== ours), so package-lock.json, npm-shrinkwrap.json, and
-              # install-lock/package-lock.json are no longer exempt.
-              # psmfd-patch-002/004/006/007 RETIRED at the v0.79.10 sync (upstream
-              # shipped the fixes in v0.79.8); their paths removed here in lockstep
-              # with .psmfd/overlay-allowlist.txt and the manifest.
+              "packages/tui/src/latex.ts",
+              "packages/tui/test/latex-performance.test.ts",
           }
           # Capability-patch exemptions (C-class, pi_config ADR-0138/ADR-0145):
           # upstream-owned paths carrying a manifest-tracked PSMFD capability
@@ -115,37 +94,28 @@ jobs:
           # SECURITY_PATCH_PATHS above. Same trust model: allowlist data only,
           # every change maintainer-reviewed before merge.
           C_CLASS_PATCH_PATHS = {
-              # psmfd-patch-010 — RPC hello line (psmfd/pi#56); the rpc/*.ts
-              # paths will be shared with psmfd-patch-011/012.
-              "packages/coding-agent/src/modes/rpc/rpc-mode.ts",
-              "packages/coding-agent/src/modes/rpc/rpc-types.ts",
-              "packages/coding-agent/src/modes/rpc/rpc-client.ts",
-              "packages/coding-agent/test/rpc-hello.test.ts",
-              # psmfd-patch-011 — list_sessions (psmfd/pi#54); rpc/*.ts shared.
-              "packages/coding-agent/test/rpc-list-sessions.test.ts",
-              # psmfd-patch-012 — session_start dialog fix (psmfd/pi#57).
-              "packages/coding-agent/test/rpc-session-start-dialog.test.ts",
-              # psmfd-patch-013 — cache-warmer failure recovery (psmfd/pi#74).
-              "packages/coding-agent/src/core/cache-warmer.ts",
-              "packages/coding-agent/test/cache-warmer.test.ts",
-              # psmfd-patch-018/019 — qualification correctness (#77/#78).
-              "packages/coding-agent/src/core/auth-storage.ts",
-              "packages/coding-agent/test/auth-storage.test.ts",
-              "packages/chord/src/delta/index.ts",
-              "packages/chord/test/delta.test.ts",
-              # psmfd-patch-020 — managed startup; FingerTrap ADR-0038/0039.
               "packages/coding-agent/docs/cli-integration.md",
               "packages/coding-agent/src/cli/args.ts",
               "packages/coding-agent/src/core/agent-session-runtime.ts",
               "packages/coding-agent/src/core/agent-session-services.ts",
+              "packages/coding-agent/src/core/auth-storage.ts",
+              "packages/coding-agent/src/core/cache-warmer.ts",
               "packages/coding-agent/src/core/managed-resource-loader.ts",
               "packages/coding-agent/src/core/startup-policy.ts",
               "packages/coding-agent/src/main.ts",
               "packages/coding-agent/src/modes/interactive/interactive-mode.ts",
               "packages/coding-agent/src/modes/interactive/theme/theme-controller.ts",
+              "packages/coding-agent/src/modes/rpc/rpc-client.ts",
+              "packages/coding-agent/src/modes/rpc/rpc-mode.ts",
+              "packages/coding-agent/src/modes/rpc/rpc-types.ts",
+              "packages/coding-agent/test/auth-storage.test.ts",
+              "packages/coding-agent/test/cache-warmer.test.ts",
               "packages/coding-agent/test/interactive-mode-clone-command.test.ts",
               "packages/coding-agent/test/interactive-mode-import-command.test.ts",
               "packages/coding-agent/test/managed-startup-policy.test.ts",
+              "packages/coding-agent/test/rpc-hello.test.ts",
+              "packages/coding-agent/test/rpc-list-sessions.test.ts",
+              "packages/coding-agent/test/rpc-session-start-dialog.test.ts",
               "packages/coding-agent/test/theme-controller.test.ts",
           }
           REGEXES = (

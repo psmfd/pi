@@ -22,7 +22,7 @@
 #
 # Build hermeticity (Phase 0 findings, pi_config#356):
 #   - npm ci --ignore-scripts only; no lifecycle scripts.
-#   - Packages are built with tsgo directly; the packages/ai
+#   - Packages are built with TypeScript 7 directly; the packages/ai
 #     generate-models step (live network fetches of provider catalogs) is
 #     skipped. Since upstream v0.81.0 the model DATA lives in gitignored
 #     packages/ai/src/providers/data/*.json (upstream #6765), so the build
@@ -57,7 +57,7 @@ name: psmfd-release
 permissions: {}
 
 env:
-  BUN_VERSION: "1.3.10"
+  BUN_VERSION: "1.3.14"
 
 jobs:
   preflight:
@@ -111,42 +111,41 @@ jobs:
           BASE="${BASE#v}"
           # npm verifies the tarball against the registry's recorded
           # integrity (sha512) during pack; no live provider fetches.
-          npm pack "@earendil-works/pi-ai@${BASE}" --pack-destination "$RUNNER_TEMP"
+          npm pack "@earendil-works/pi-ai@${BASE}" --ignore-scripts --pack-destination "$RUNNER_TEMP"
           tar -xzf "$RUNNER_TEMP/earendil-works-pi-ai-${BASE}.tgz" \
             -C "$RUNNER_TEMP" package/dist/providers/data
           mkdir -p packages/ai/src/providers/data
           # The glob must include the hidden .manifest.json — all.ts imports
           # ./data/.manifest.json (generatedAt), and a bare *.json misses
-          # dotfiles, failing the build at tsgo time (>= upstream v0.83.0).
+          # dotfiles, failing the TypeScript build (>= upstream v0.83.0).
           cp "$RUNNER_TEMP"/package/dist/providers/data/*.json \
             "$RUNNER_TEMP"/package/dist/providers/data/.manifest.json \
             packages/ai/src/providers/data/
           test -f packages/ai/src/providers/data/.manifest.json
-          ls packages/ai/src/providers/data | wc -l
+          find packages/ai/src/providers/data -maxdepth 1 -type f -name '*.json' | wc -l
 
       - name: Build packages (hermetic — skip network model generation)
         run: |
           set -euo pipefail
           # Mirrors the root `npm run build` chain, EXCEPT packages/ai, which is
-          # built with tsgo directly so its `generate-models` prebuild (live
+          # validated, compiled and copied directly so its `generate-models` prebuild (live
           # provider catalog fetches) never runs — the model data is hydrated
           # from the version-matched npm tarball in the step above.
           #
           # Keep this list in sync with the root package.json "build" script.
-          # Upstream v0.84.0 added packages/telemetry (imported by ai and agent)
-          # plus protocol/client/server. v0.87.1 also builds durable between ai and
-          # agent; its public exports require fresh dist output (psmfd/pi#70).
+          # v1.3.0 adds codemode, mcp and env and removes the former protocol,
+          # client, server and session-backend build workspaces. Keep durable's
+          # public exports fresh (psmfd/pi#70), and include model JSON in ai dist.
           # Offline regression: .psmfd/test/release-build.test.mjs.
           (cd packages/chord && npm run build)
           (cd packages/tui && npm run build)
           (cd packages/telemetry && npm run build)
-          (cd packages/ai && npx tsgo -p tsconfig.build.json)
+          (cd packages/codemode && npm run build)
+          (cd packages/mcp && npm run build)
+          (cd packages/ai && node scripts/check-model-data.ts && npx tsc -p tsconfig.build.json && mkdir -p dist/providers/data && cp -R src/providers/data/. dist/providers/data/)
           (cd packages/durable && npm run build)
+          (cd packages/env && npm run build)
           (cd packages/agent && npm run build)
-          (cd packages/session-backends/sqlite-node && npm run build)
-          (cd packages/protocol && npm run build)
-          (cd packages/client && npm run build)
-          (cd packages/server && npm run build)
           (cd packages/coding-agent && npm run build)
 
       - name: Compile platform binaries and upstream-shaped archives
