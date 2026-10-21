@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
 	clearConfigValueCache,
 	resolveConfigValue,
+	resolveConfigValueOrThrow,
 	resolveConfigValueUncached,
 } from "../src/core/resolve-config-value.ts";
 import * as shellModule from "../src/utils/shell.ts";
@@ -46,6 +47,13 @@ describe("resolveConfigValue", () => {
 		} finally {
 			delete process.env.TEST_CONFIG_SCOPED;
 		}
+	});
+
+	// psmfd/pi#83, CodeQL 93: failed credential commands may embed secrets.
+	test("does not expose a failed credential command in its error", () => {
+		expect(() => resolveConfigValueOrThrow("!false synthetic-private-value", "MCP client secret")).toThrowError(
+			/^Failed to resolve MCP client secret from shell command$/,
+		);
 	});
 
 	test("executes shell commands and trims their output", () => {

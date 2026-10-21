@@ -102,3 +102,10 @@ packages/coding-agent/test/theme-controller.test.ts
 # psmfd-patch-021 — Vite/launch-editor development security update.
 package.json
 package-lock.json
+
+# Pending S-class 022/023/024: CodeQL 88/92/93/95, Pi #83.
+packages/coding-agent/src/core/resolve-config-value.ts
+packages/coding-agent/test/resolve-config-value.test.ts
+packages/durable/src/harness/json.ts
+scripts/issues/main.ts
+scripts/model-catalog-protocol.ts

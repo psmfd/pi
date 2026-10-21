@@ -254,3 +254,10 @@ pass. Linux/Bubblewrap integration and publication remain separate gates.
 All 13 upstream workflows are quarantined as references; only the previously
 approved PSMFD workflow family remains runnable. This is an unpublished
 qualification candidate, not a release, pin or managed-product activation.
+
+Pi #83 security review registers pending S-class 022 (catalog regex), 023
+(HTTP/credential error disclosure) and 024 (streamed JSON prototype pollution)
+for CodeQL alerts 88/92/93/95. Both guard data sets and the text allowlist admit
+only their manifest paths. Guard logic and C-class ceilings are unchanged.
+False-positive alert dispositions require retained proof; no broad exclusion is
+added. Candidate binaries are rebuilt and requalified after source corrections.

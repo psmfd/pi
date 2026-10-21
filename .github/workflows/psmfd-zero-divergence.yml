@@ -72,6 +72,11 @@ jobs:
           # allowlist data only; it does not change the guard's trust model, and
           # every such change still requires maintainer review before merge.
           SECURITY_PATCH_PATHS = {
+              "packages/coding-agent/src/core/resolve-config-value.ts",
+              "packages/coding-agent/test/resolve-config-value.test.ts",
+              "packages/durable/src/harness/json.ts",
+              "scripts/issues/main.ts",
+              "scripts/model-catalog-protocol.ts",
               "package-lock.json",
               "package.json",
               "packages/ai/src/utils/overflow.ts",

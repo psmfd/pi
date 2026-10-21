@@ -863,3 +863,86 @@ patches:
     upstream_fixed_in: null
     psmfd_commit: null
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-022
+    status: pending
+    class: security
+    upstream_base: v1.3.0
+    advisory: "CodeQL js/polynomial-redos (psmfd/pi alert 88)"
+    severity: high
+    reporting: >-
+      No upstream report sent. Private reporting assessment remains for the
+      maintainer under upstream SECURITY.md; upstream contributions are human-led.
+      On 2026-10-21, latest main bd3c9b823762b7383954aa49e13ee350471015fe
+      retains the affected source; open fix-PR searches found no relevant fix.
+    description: >-
+      Remove redundant whitespace repetitions before fields that already accept whitespace. Preserve accepted User-Agent syntax while avoiding quadratic backtracking on missing closing parentheses.
+    patched_paths:
+      - scripts/model-catalog-protocol.ts
+    evidence: >-
+      FingerTrap #210 retains CodeQL traces, red/green regression output and
+      exact candidate requalification. Real-input controls are retained in
+      .psmfd/test/security-1.3.test.mjs; credential resolution has its own test.
+      Source findings are fixed rather than dismissed. Integration and release
+      remain subject to maintainer review; pending is not a merge approval.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-023
+    status: pending
+    class: security
+    upstream_base: v1.3.0
+    advisory: "CodeQL js/stack-trace-exposure; js/clear-text-logging (psmfd/pi alerts 92, 93)"
+    severity: high
+    reporting: >-
+      No upstream report sent. Private reporting assessment remains for the
+      maintainer under upstream SECURITY.md; upstream contributions are human-led.
+      On 2026-10-21, latest main bd3c9b823762b7383954aa49e13ee350471015fe
+      retains the affected source; open fix-PR searches found no relevant fix.
+    description: >-
+      Return a generic triage HTTP 500 response while preserving server-side diagnostics. Do not include failed credential command text in thrown errors: it can contain literal secrets.
+    patched_paths:
+      - scripts/issues/main.ts
+      - packages/coding-agent/src/core/resolve-config-value.ts
+      - packages/coding-agent/test/resolve-config-value.test.ts
+    evidence: >-
+      FingerTrap #210 retains CodeQL traces, red/green regression output and
+      exact candidate requalification. Real-input controls are retained in
+      .psmfd/test/security-1.3.test.mjs; credential resolution has its own test.
+      Source findings are fixed rather than dismissed. Integration and release
+      remain subject to maintainer review; pending is not a merge approval.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null
+
+  - id: psmfd-patch-024
+    status: pending
+    class: security
+    upstream_base: v1.3.0
+    advisory: "CodeQL js/prototype-pollution-utility (psmfd/pi alert 95)"
+    severity: medium
+    reporting: >-
+      No upstream report sent. Private reporting assessment remains for the
+      maintainer under upstream SECURITY.md; upstream contributions are human-led.
+      On 2026-10-21, latest main bd3c9b823762b7383954aa49e13ee350471015fe
+      retains the affected source; open fix-PR searches found no relevant fix.
+    description: >-
+      Never recurse into inherited slots. Reject direct reserved assignment keys and assign a record containing reserved keys as one data value. Preserve such JSON data through Chord preparation, replay and adoption without modifying Object.prototype.
+    patched_paths:
+      - packages/durable/src/harness/json.ts
+    evidence: >-
+      FingerTrap #210 retains CodeQL traces, red/green regression output and
+      exact candidate requalification. Real-input controls are retained in
+      .psmfd/test/security-1.3.test.mjs; credential resolution has its own test.
+      Source findings are fixed rather than dismissed. Integration and release
+      remain subject to maintainer review; pending is not a merge approval.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_fixed_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

@@ -310,3 +310,10 @@ Release build instructions preserve inline workspace selection and the
 attestation boundary. The reviewed update tracks upstream workspace order,
 TypeScript 7, model-data copying and Bun 1.3.14. No release workflow is
 dispatched by this qualification. Upstream workflows remain reference-only.
+
+Pi #83 security review registers pending S-class 022 (catalog regex), 023
+(HTTP/credential error disclosure) and 024 (streamed JSON prototype pollution)
+for CodeQL alerts 88/92/93/95. Both guard data sets and the text allowlist admit
+only their manifest paths. Guard logic and C-class ceilings are unchanged.
+False-positive alert dispositions require retained proof; no broad exclusion is
+added. Candidate binaries are rebuilt and requalified after source corrections.
