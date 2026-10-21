@@ -471,3 +471,56 @@ patches:
     upstream_adopted_in: null
     psmfd_commit: b7f1441dd4cbb5f9b3db639d674b517834de6d8f
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-020
+    status: pending
+    class: capability
+    upstream_base: v0.85.1
+    advisory: null
+    severity: null
+    reporting: >-
+      Not reported upstream. Experimental host mechanism authorized by
+      FingerTrap ADR-0038 and the approved S3-G1 through G4 plan. Upstream
+      contribution remains human-led and separate from local qualification.
+    description: >-
+      Explicit managed-v1 startup policy (psmfd/pi#80): validate immutable
+      launch inputs before migrations/command dispatch, construct in-memory
+      configuration, load only selected extensions with a literal prompt,
+      and retain that policy through reload and supported new-session flows.
+      Unsupported ambient configuration and session transitions are rejected.
+      An extension cannot prevent discovery that occurs before it is loaded.
+      This is a host-selected startup mechanism, not an OS sandbox.
+      Pending means not merged or approved for production pin promotion.
+    patched_paths:
+      - packages/coding-agent/docs/managed-startup.md
+      - packages/coding-agent/src/cli/args.ts
+      - packages/coding-agent/src/core/agent-session-runtime.ts
+      - packages/coding-agent/src/core/agent-session-services.ts
+      - packages/coding-agent/src/core/managed-resource-loader.ts
+      - packages/coding-agent/src/core/startup-policy.ts
+      - packages/coding-agent/src/main.ts
+      - packages/coding-agent/src/modes/interactive/interactive-mode.ts
+      - packages/coding-agent/src/modes/interactive/theme/theme-controller.ts
+      - packages/coding-agent/test/interactive-mode-clone-command.test.ts
+      - packages/coding-agent/test/interactive-mode-import-command.test.ts
+      - packages/coding-agent/test/managed-startup-policy.test.ts
+      - packages/coding-agent/test/theme-controller.test.ts
+    evidence: >-
+      Implementation commit 39b729b625f50d4c82bd993151865d5ded8dd78e.
+      Static checks, offline build, hermetic suite and instrumented service
+      traps pass. Exact macOS ARM64 binary and published FingerTrap test host
+      pass direct RPC/PTY/CLI and two-profile checks locally and in clean Tart.
+      Baseline fails isolation; migration/default-loader/host-capability
+      mutations fail and restored checks pass. Twelve RPC scenarios recorded
+      twice per binary match the baseline. Full hashes and evidence are in
+      FingerTrap docs/migration/s3-managed-startup-qualification.html (PR #209).
+      Candidate adds 664 lines of additions/deletions across 13 files. On the
+      old comparison base: conservative per-patch sum 1772 lines, 19 paths,
+      four capability patches including this pending candidate. Current main
+      already has six active capability patches; forward-port requires a
+      reviewed cap disposition and requalification, preserving later fixes.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

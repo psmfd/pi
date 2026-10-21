@@ -66,3 +66,18 @@ packages/coding-agent/test/rpc-list-sessions.test.ts
 # psmfd-patch-012 — session_start dialog fix (psmfd/pi#57); rpc-mode.ts above
 # is a shared owner.
 packages/coding-agent/test/rpc-session-start-dialog.test.ts
+
+# psmfd-patch-020 — pending managed startup candidate; FingerTrap ADR-0038.
+packages/coding-agent/docs/managed-startup.md
+packages/coding-agent/src/cli/args.ts
+packages/coding-agent/src/core/agent-session-runtime.ts
+packages/coding-agent/src/core/agent-session-services.ts
+packages/coding-agent/src/core/managed-resource-loader.ts
+packages/coding-agent/src/core/startup-policy.ts
+packages/coding-agent/src/main.ts
+packages/coding-agent/src/modes/interactive/interactive-mode.ts
+packages/coding-agent/src/modes/interactive/theme/theme-controller.ts
+packages/coding-agent/test/interactive-mode-clone-command.test.ts
+packages/coding-agent/test/interactive-mode-import-command.test.ts
+packages/coding-agent/test/managed-startup-policy.test.ts
+packages/coding-agent/test/theme-controller.test.ts
