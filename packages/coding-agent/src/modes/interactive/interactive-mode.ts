@@ -548,6 +548,16 @@ export class InteractiveMode {
 	private themeController: InteractiveThemeController;
 
 	// Convenience accessors
+	private get isManagedStartup(): boolean {
+		return this.runtimeHost.services.startupPolicy !== undefined;
+	}
+
+	private rejectManagedOperation(operation: string): boolean {
+		if (!this.isManagedStartup) return false;
+		this.showError(`managed-v1 does not support ${operation}`);
+		return true;
+	}
+
 	private get session(): AgentSession {
 		return this.runtimeHost.session;
 	}
@@ -596,7 +606,7 @@ export class InteractiveMode {
 		this.statusContainer = new Container();
 		this.widgetContainerAbove = new Container();
 		this.widgetContainerBelow = new Container();
-		this.keybindings = KeybindingsManager.create();
+		this.keybindings = this.isManagedStartup ? new KeybindingsManager() : KeybindingsManager.create();
 		setKeybindings(this.keybindings);
 		const editorPaddingX = this.settingsManager.getEditorPaddingX();
 		const autocompleteMaxVisible = this.settingsManager.getAutocompleteMaxVisible();
@@ -625,6 +635,7 @@ export class InteractiveMode {
 			showError: (message) => this.showError(message),
 			onChanged: () => this.updateEditorBorderColor(),
 			initialThemeSetting: options.initialThemeSetting,
+			builtInOnly: this.isManagedStartup,
 		});
 	}
 
@@ -899,7 +910,7 @@ export class InteractiveMode {
 		this.registerSignalHandlers();
 
 		// Load changelog (only show new entries, skip for resumed sessions)
-		this.changelogMarkdown = this.getChangelogForDisplay();
+		this.changelogMarkdown = this.isManagedStartup ? undefined : this.getChangelogForDisplay();
 
 		if (this.session.scopedModels.length > 0 && (this.options.verbose || !this.settingsManager.getQuietStartup())) {
 			const modelList = this.session.scopedModels
@@ -1018,10 +1029,12 @@ export class InteractiveMode {
 		// Ensure fd and rg are available after mounting the TUI (downloads if missing, adds to PATH via getBinDir)
 		// so slow downloads do not make startup appear frozen.
 		// Both are needed: fd for autocomplete, rg for grep tool and bash commands.
-		const [fdPath] = await Promise.all([
-			ensureTool("fd", (status) => this.showManagedToolStatus(status)),
-			ensureTool("rg", (status) => this.showManagedToolStatus(status)),
-		]);
+		const [fdPath] = this.isManagedStartup
+			? []
+			: await Promise.all([
+					ensureTool("fd", (status) => this.showManagedToolStatus(status)),
+					ensureTool("rg", (status) => this.showManagedToolStatus(status)),
+				]);
 		this.fdPath = fdPath;
 
 		// Enable the remaining input handlers only after managed-tool setup completes.
@@ -1079,7 +1092,7 @@ export class InteractiveMode {
 	async run(): Promise<void> {
 		await this.init();
 
-		if (!process.env.PI_OFFLINE) {
+		if (!this.isManagedStartup && !process.env.PI_OFFLINE) {
 			const controller = new AbortController();
 			const timeout = setTimeout(() => controller.abort(), 15_000);
 			void refreshModelCatalogs(this.session.modelRuntime, controller.signal)
@@ -1088,34 +1101,36 @@ export class InteractiveMode {
 				.finally(() => clearTimeout(timeout));
 		}
 
-		// Start version check asynchronously
-		checkForNewPiVersion(this.version).then((newRelease) => {
-			if (newRelease) {
-				this.showNewVersionNotification(newRelease);
-			}
-		});
-
-		// Start package update check asynchronously
-		this.checkForPackageUpdates()
-			.then((updates) => {
-				if (updates.length > 0) {
-					this.showPackageUpdateNotification(updates);
-				}
-			})
-			.finally(() => {
-				// On Windows, npm can overwrite the shared console title while checking
-				// extension package versions. Restore Pi's title after the startup check.
-				if (process.platform === "win32" && this.isInitialized) {
-					this.updateTerminalTitle();
+		if (!this.isManagedStartup) {
+			// Start version check asynchronously
+			checkForNewPiVersion(this.version).then((newRelease) => {
+				if (newRelease) {
+					this.showNewVersionNotification(newRelease);
 				}
 			});
 
-		// Check tmux keyboard setup asynchronously
-		this.checkTmuxKeyboardSetup().then((warning) => {
-			if (warning) {
-				this.showWarning(warning);
-			}
-		});
+			// Start package update check asynchronously
+			this.checkForPackageUpdates()
+				.then((updates) => {
+					if (updates.length > 0) {
+						this.showPackageUpdateNotification(updates);
+					}
+				})
+				.finally(() => {
+					// On Windows, npm can overwrite the shared console title while checking
+					// extension package versions. Restore Pi's title after the startup check.
+					if (process.platform === "win32" && this.isInitialized) {
+						this.updateTerminalTitle();
+					}
+				});
+
+			// Check tmux keyboard setup asynchronously
+			this.checkTmuxKeyboardSetup().then((warning) => {
+				if (warning) {
+					this.showWarning(warning);
+				}
+			});
+		}
 
 		// Show startup warnings
 		const {
@@ -1150,7 +1165,7 @@ export class InteractiveMode {
 			this.showWarning(modelFallbackMessage);
 		}
 
-		const crash = takeUnnotifiedCrash();
+		const crash = this.isManagedStartup ? undefined : takeUnnotifiedCrash();
 		if (crash) {
 			const when = new Date(crash.timestamp).toLocaleString();
 			this.showWarning(
@@ -1194,7 +1209,7 @@ export class InteractiveMode {
 	}
 
 	private async checkForPackageUpdates(): Promise<string[]> {
-		if (process.env.PI_OFFLINE) {
+		if (this.isManagedStartup || process.env.PI_OFFLINE) {
 			return [];
 		}
 
@@ -1212,7 +1227,7 @@ export class InteractiveMode {
 	}
 
 	private async checkTmuxKeyboardSetup(): Promise<string | undefined> {
-		if (!process.env.TMUX) return undefined;
+		if (this.isManagedStartup || !process.env.TMUX) return undefined;
 
 		const runTmuxShow = (option: string): Promise<string | undefined> => {
 			return new Promise((resolve) => {
@@ -1290,7 +1305,7 @@ export class InteractiveMode {
 	}
 
 	private reportInstallTelemetry(version: string): void {
-		if (process.env.PI_OFFLINE) {
+		if (this.isManagedStartup || process.env.PI_OFFLINE) {
 			return;
 		}
 
@@ -1919,6 +1934,8 @@ export class InteractiveMode {
 			commandContextActions: {
 				waitForIdle: () => this.session.waitForIdle(),
 				newSession: async (options) => {
+					if (this.isManagedStartup && options?.parentSession)
+						throw new Error("managed-v1 does not support parent sessions");
 					this.clearStatusIndicator();
 					try {
 						return await this.runtimeHost.newSession(options);
@@ -1927,6 +1944,7 @@ export class InteractiveMode {
 					}
 				},
 				fork: async (entryId, options) => {
+					if (this.isManagedStartup) throw new Error("managed-v1 does not support session forks");
 					try {
 						const result = await this.runtimeHost.fork(entryId, options);
 						if (!result.cancelled) {
@@ -2074,6 +2092,7 @@ export class InteractiveMode {
 
 	/** Persist a crash so the next start can point the user at `/bug`. Returns false when nothing was written. */
 	private recordCrash(kind: "uncaught_exception" | "fatal_error", error: unknown): boolean {
+		if (this.isManagedStartup) return false;
 		try {
 			return (
 				recordCrash({
@@ -2094,6 +2113,7 @@ export class InteractiveMode {
 	}
 
 	private suggestBugReport(): void {
+		if (this.isManagedStartup) return;
 		if (this.bugReportHintShown) return;
 		this.bugReportHintShown = true;
 		this.chatContainer.addChild(
@@ -2568,8 +2588,15 @@ export class InteractiveMode {
 			get theme() {
 				return theme;
 			},
-			getAllThemes: () => getAvailableThemesWithPaths(),
-			getTheme: (name) => getThemeByName(name),
+			getAllThemes: () =>
+				this.isManagedStartup
+					? [
+							{ name: "dark", path: undefined },
+							{ name: "light", path: undefined },
+						]
+					: getAvailableThemesWithPaths(),
+			getTheme: (name) =>
+				this.isManagedStartup && name !== "dark" && name !== "light" ? undefined : getThemeByName(name),
 			setTheme: (themeOrName) => {
 				if (themeOrName instanceof Theme) {
 					return this.themeController.setThemeInstance(themeOrName);
@@ -4071,6 +4098,7 @@ export class InteractiveMode {
 	}
 
 	private renderProjectTrustWarningIfNeeded(): void {
+		if (this.isManagedStartup) return;
 		if (this.settingsManager.isProjectTrusted() || !hasTrustRequiringProjectResources(this.sessionManager.getCwd())) {
 			return;
 		}
@@ -4168,7 +4196,7 @@ export class InteractiveMode {
 		this.stop();
 		await this.runtimeHost.dispose();
 
-		const resumeCommand = formatResumeCommand(this.sessionManager);
+		const resumeCommand = this.isManagedStartup ? undefined : formatResumeCommand(this.sessionManager);
 		if (resumeCommand) {
 			process.stdout.write(`${chalk.dim("To resume this session:")} ${resumeCommand}\n`);
 		}
@@ -4742,6 +4770,7 @@ export class InteractiveMode {
 	}
 
 	private showSettingsSelector(): void {
+		if (this.rejectManagedOperation("settings")) return;
 		this.showSelector((done) => {
 			let selector: SettingsSelectorComponent | undefined;
 			const defaultProvider = this.settingsManager.getDefaultProvider();
@@ -5129,6 +5158,7 @@ export class InteractiveMode {
 	}
 
 	private maybeSaveImplicitProjectTrustAfterReload(): boolean {
+		if (this.isManagedStartup) return false;
 		const cwd = this.sessionManager.getCwd();
 		if (this.autoTrustOnReloadCwd !== cwd) {
 			return false;
@@ -5155,6 +5185,7 @@ export class InteractiveMode {
 	}
 
 	private showTrustSelector(): void {
+		if (this.rejectManagedOperation("project trust")) return;
 		const cwd = this.sessionManager.getCwd();
 		const trustStore = new ProjectTrustStore(this.runtimeHost.services.agentDir);
 		const savedDecision = trustStore.getEntry(cwd);
@@ -5339,6 +5370,7 @@ export class InteractiveMode {
 	}
 
 	private showUserMessageSelector(): void {
+		if (this.rejectManagedOperation("session forks")) return;
 		const userMessages = this.session.getUserMessagesForForking();
 
 		if (userMessages.length === 0) {
@@ -5377,6 +5409,7 @@ export class InteractiveMode {
 	}
 
 	private async handleCloneCommand(): Promise<void> {
+		if (this.rejectManagedOperation("session forks")) return;
 		const leafId = this.sessionManager.getLeafId();
 		if (!leafId) {
 			this.showStatus("Nothing to clone yet");
@@ -5547,6 +5580,7 @@ export class InteractiveMode {
 	}
 
 	private showSessionSelector(): void {
+		if (this.rejectManagedOperation("session selection")) return;
 		this.showSelector((done) => {
 			const selector = new SessionSelectorComponent(
 				(onProgress, signal) =>
@@ -5593,6 +5627,7 @@ export class InteractiveMode {
 		sessionPath: string,
 		options?: Parameters<ExtensionCommandContext["switchSession"]>[1],
 	): Promise<{ cancelled: boolean }> {
+		if (this.rejectManagedOperation("session resume")) return { cancelled: true };
 		this.clearStatusIndicator();
 		try {
 			const result = await this.runtimeHost.switchSession(sessionPath, {
@@ -5683,6 +5718,7 @@ export class InteractiveMode {
 	}
 
 	private async handleLoginCommand(providerRef?: string): Promise<void> {
+		if (this.rejectManagedOperation("login")) return;
 		if (!providerRef) {
 			this.showLoginAuthTypeSelector();
 			return;
@@ -5817,6 +5853,7 @@ export class InteractiveMode {
 	}
 
 	private async showOAuthSelector(mode: "login" | "logout"): Promise<void> {
+		if (this.rejectManagedOperation("authentication")) return;
 		if (mode === "login") {
 			this.showLoginAuthTypeSelector();
 			return;
@@ -6305,6 +6342,7 @@ export class InteractiveMode {
 	}
 
 	private async handleImportCommand(text: string): Promise<void> {
+		if (this.rejectManagedOperation("session import")) return;
 		const inputPath = this.getPathCommandArgument(text, "/import");
 		if (!inputPath) {
 			this.showError("Usage: /import <path.jsonl>");
@@ -6360,6 +6398,7 @@ export class InteractiveMode {
 	}
 
 	private async handleBugCommand(hint: string | undefined): Promise<void> {
+		if (this.rejectManagedOperation("bug reports")) return;
 		await reportBug(
 			{
 				session: this.session,

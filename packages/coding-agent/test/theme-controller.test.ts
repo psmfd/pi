@@ -46,6 +46,33 @@ afterEach(() => {
 });
 
 describe("InteractiveThemeController", () => {
+	// Regression: https://github.com/psmfd/pi/issues/80
+	it("restricts managed selections and previews to built-in themes", async () => {
+		const { ui, queryTerminalColorScheme } = createUi();
+		const manager = SettingsManager.inMemory({ theme: "ambient-custom-theme" });
+		const showError = vi.fn();
+		const controller = new InteractiveThemeController(ui, {
+			getSettingsManager: () => manager,
+			showError,
+			onChanged: vi.fn(),
+			initialThemeSetting: "ambient-custom-theme",
+			builtInOnly: true,
+		});
+		expect(theme.name).toBe("dark");
+		expect(controller.setThemeName("ambient-custom-theme")).toEqual({
+			success: false,
+			error: "managed-v1 supports built-in themes only",
+		});
+		expect(controller.setThemeName("light")).toEqual({ success: true });
+		controller.preview("ambient-custom-theme");
+		expect(theme.name).toBe("light");
+		await controller.setThemeSetting("light/dark");
+		expect(queryTerminalColorScheme).not.toHaveBeenCalled();
+		expect(theme.name).toBe("light");
+		expect(showError).toHaveBeenCalledWith("managed-v1 supports built-in themes only");
+		controller.dispose();
+	});
+
 	it("uses the initial theme without persisting it", async () => {
 		const { ui, queryTerminalBackgroundColor } = createUi();
 		const manager = SettingsManager.inMemory({ theme: "dark" });

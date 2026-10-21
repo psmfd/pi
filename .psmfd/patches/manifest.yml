@@ -766,3 +766,53 @@ patches:
     upstream_adopted_in: null
     psmfd_commit: null
     psmfd_retire_commit: null
+
+  - id: psmfd-patch-020
+    status: pending
+    class: capability
+    upstream_base: v0.87.1
+    advisory: null
+    severity: null
+    reporting: >-
+      Not reported upstream. Host mechanism admitted by FingerTrap ADR-0038;
+      maintained-base forward-port and bounded cap exception by ADR-0039.
+      Upstream contribution remains human-led and separate.
+    description: >-
+      Explicit managed-v1 startup policy (psmfd/pi#80): validate immutable
+      launch inputs before migrations/command dispatch, construct in-memory
+      configuration, load only selected extensions with a literal prompt,
+      and retain that policy through reload and supported new-session flows.
+      Disable implicit crash discovery/recording and cache warming; reject
+      unsupported config/auth/session/bug-report operations. Extensions cannot
+      prevent discovery before they load. This is not an OS sandbox.
+      Pending means not merged or approved for a production pin.
+    patched_paths:
+      - packages/coding-agent/docs/cli-integration.md
+      - packages/coding-agent/src/cli/args.ts
+      - packages/coding-agent/src/core/agent-session-runtime.ts
+      - packages/coding-agent/src/core/agent-session-services.ts
+      - packages/coding-agent/src/core/managed-resource-loader.ts
+      - packages/coding-agent/src/core/startup-policy.ts
+      - packages/coding-agent/src/main.ts
+      - packages/coding-agent/src/modes/interactive/interactive-mode.ts
+      - packages/coding-agent/src/modes/interactive/theme/theme-controller.ts
+      - packages/coding-agent/test/interactive-mode-clone-command.test.ts
+      - packages/coding-agent/test/interactive-mode-import-command.test.ts
+      - packages/coding-agent/test/managed-startup-policy.test.ts
+      - packages/coding-agent/test/theme-controller.test.ts
+    evidence: >-
+      Forward-port on maintained main 42429b94e4aca33fdbb8d094de29758b36411ba1;
+      preserves all existing security/correctness patches. The original
+      0.85.1 experiment remains on PR #81 for historical comparison only.
+      Regression fixtures reproduce persisted-crash mutation and cache-warming
+      default before the maintained-base corrections. Exact-artifact evidence
+      and fresh patch accounting are retained in FingerTrap PR #209 under
+      docs/migration/evidence/s3-managed-startup-maintained/.
+      ADR-0039 allows only patch 020 to increase the aggregate maximum to
+      7 C-class patches / 2200 per-patch changed lines / 25 distinct paths.
+      Recount at every sync; no S-class relabeling or trusted-sync bypass.
+    upstream_issue: null
+    upstream_pr: null
+    upstream_adopted_in: null
+    psmfd_commit: null
+    psmfd_retire_commit: null

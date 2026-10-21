@@ -142,6 +142,20 @@ jobs:
               "packages/coding-agent/test/auth-storage.test.ts",
               "packages/chord/src/delta/index.ts",
               "packages/chord/test/delta.test.ts",
+              # psmfd-patch-020 — managed startup; FingerTrap ADR-0038/0039.
+              "packages/coding-agent/docs/cli-integration.md",
+              "packages/coding-agent/src/cli/args.ts",
+              "packages/coding-agent/src/core/agent-session-runtime.ts",
+              "packages/coding-agent/src/core/agent-session-services.ts",
+              "packages/coding-agent/src/core/managed-resource-loader.ts",
+              "packages/coding-agent/src/core/startup-policy.ts",
+              "packages/coding-agent/src/main.ts",
+              "packages/coding-agent/src/modes/interactive/interactive-mode.ts",
+              "packages/coding-agent/src/modes/interactive/theme/theme-controller.ts",
+              "packages/coding-agent/test/interactive-mode-clone-command.test.ts",
+              "packages/coding-agent/test/interactive-mode-import-command.test.ts",
+              "packages/coding-agent/test/managed-startup-policy.test.ts",
+              "packages/coding-agent/test/theme-controller.test.ts",
           }
           REGEXES = (
               re.compile(r"^\.psmfd/.+"),

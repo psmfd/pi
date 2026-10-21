@@ -59,6 +59,7 @@ import {
 import { assertValidSessionId, SessionManager } from "./core/session-manager.ts";
 import { collectSettingsDiagnostics, deduplicateDiagnostics } from "./core/settings-diagnostics.ts";
 import { SettingsManager } from "./core/settings-manager.ts";
+import { type ManagedStartupPolicy, resolveStartupPolicy } from "./core/startup-policy.ts";
 import { printTimings, resetTimings, time } from "./core/timings.ts";
 import { hasTrustRequiringProjectResources, ProjectTrustStore } from "./core/trust-manager.ts";
 import { builtInExtensions } from "./extensions/index.ts";
@@ -564,30 +565,43 @@ export interface MainOptions {
 }
 
 export async function main(args: string[], options?: MainOptions) {
+	const parsed = parseArgs(args);
+	let startupPolicy: ManagedStartupPolicy | undefined;
+	try {
+		startupPolicy = resolveStartupPolicy(args, parsed, process.env, process.cwd());
+		if (startupPolicy && options?.extensionFactories?.length)
+			throw new Error("managed-v1 requires explicit extension files");
+	} catch (error) {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exitCode = 1;
+		return;
+	}
 	resetTimings();
-	const extensionFactories = [...builtInExtensions, ...(options?.extensionFactories ?? [])];
-	const offlineMode = args.includes("--offline") || isTruthyEnvFlag(process.env.PI_OFFLINE);
+	const extensionFactories = startupPolicy ? [] : [...builtInExtensions, ...(options?.extensionFactories ?? [])];
+	const offlineMode = !!startupPolicy || args.includes("--offline") || isTruthyEnvFlag(process.env.PI_OFFLINE);
 	if (offlineMode) {
 		process.env.PI_OFFLINE = "1";
 		process.env.PI_SKIP_VERSION_CHECK = "1";
 	}
 
-	if (await runAuthCommand(args)) {
+	if (!startupPolicy && (await runAuthCommand(args))) {
 		return;
 	}
 
-	if (process.platform === "win32") {
+	if (!startupPolicy && process.platform === "win32") {
 		cleanupWindowsSelfUpdateQuarantine(getPackageDir());
 	}
-	cleanupManagedInstall();
+	if (!startupPolicy) cleanupManagedInstall();
 
 	const cwd = process.cwd();
-	const agentDir = getAgentDir();
-	const bootstrapSettingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: false });
+	const agentDir = startupPolicy?.agentDir ?? getAgentDir();
+	const bootstrapSettingsManager = startupPolicy
+		? SettingsManager.inMemory({ cacheWarming: "off" }, { projectTrusted: false })
+		: SettingsManager.create(cwd, agentDir, { projectTrusted: false });
 	applyHttpProxySettings(bootstrapSettingsManager.getGlobalSettings().httpProxy);
 	configureHttpDispatcher();
 
-	if (await handlePackageCommand(args, { extensionFactories })) {
+	if (!startupPolicy && (await handlePackageCommand(args, { extensionFactories }))) {
 		const exitCode = process.exitCode ?? 0;
 		if (process.platform === "win32" && exitCode === 0 && args[0] === "update") {
 			// We normally prefer process.exit(0) for package commands so bad extensions cannot keep
@@ -600,11 +614,10 @@ export async function main(args: string[], options?: MainOptions) {
 		return;
 	}
 
-	if (await handleConfigCommand(args, { extensionFactories })) {
+	if (!startupPolicy && (await handleConfigCommand(args, { extensionFactories }))) {
 		return;
 	}
 
-	const parsed = parseArgs(args);
 	if (parsed.diagnostics.length > 0) {
 		for (const d of parsed.diagnostics) {
 			const color = d.type === "error" ? chalk.red : chalk.yellow;
@@ -650,15 +663,25 @@ export async function main(args: string[], options?: MainOptions) {
 	validateSessionIdFlags(parsed);
 
 	// Run migrations (pass cwd for project-local migrations)
-	const { migratedAuthProviders: migratedProviders, deprecationWarnings } = runMigrations(cwd);
+	const { migratedAuthProviders: migratedProviders, deprecationWarnings } = startupPolicy
+		? { migratedAuthProviders: [], deprecationWarnings: [] }
+		: runMigrations(cwd);
 	time("runMigrations");
 
-	const startupSettingsManager = SettingsManager.create(cwd, agentDir);
+	const startupSettingsManager = startupPolicy
+		? SettingsManager.inMemory({ theme: "dark", cacheWarming: "off" }, { projectTrusted: false })
+		: SettingsManager.create(cwd, agentDir);
 	const startupSettingsDiagnostics = collectSettingsDiagnostics(startupSettingsManager);
 
 	// Experimental first-time setup: theme choice and analytics opt-in.
 	// Runs before any runtime services are created so the chosen settings apply everywhere.
-	if (appMode === "interactive" && !parsed.help && parsed.listModels === undefined && shouldRunFirstTimeSetup()) {
+	if (
+		!startupPolicy &&
+		appMode === "interactive" &&
+		!parsed.help &&
+		parsed.listModels === undefined &&
+		shouldRunFirstTimeSetup()
+	) {
 		await showFirstTimeSetup(startupSettingsManager);
 		time("firstTimeSetup");
 	}
@@ -704,7 +727,7 @@ export async function main(args: string[], options?: MainOptions) {
 	const trustStore = new ProjectTrustStore(agentDir);
 	const sessionCwd = sessionManager.getCwd();
 	const autoTrustOnReloadCwd =
-		parsed.projectTrustOverride === undefined && !hasTrustRequiringProjectResources(sessionCwd)
+		!startupPolicy && parsed.projectTrustOverride === undefined && !hasTrustRequiringProjectResources(sessionCwd)
 			? sessionCwd
 			: undefined;
 	const trustPromptMode: AppMode = parsed.help || parsed.listModels !== undefined ? "print" : appMode;
@@ -724,16 +747,21 @@ export async function main(args: string[], options?: MainOptions) {
 		const isInitialRuntime = sessionStartEvent === undefined;
 		const projectTrustDiagnostics: AgentSessionRuntimeDiagnostic[] = [];
 		const cachedProjectTrust = projectTrustByCwd.get(cwd);
-		const hasTrustRequiringResources = hasTrustRequiringProjectResources(cwd);
+		const hasTrustRequiringResources = !startupPolicy && hasTrustRequiringProjectResources(cwd);
 		const shouldResolveProjectTrust =
 			parsed.projectTrustOverride === undefined && cachedProjectTrust === undefined && hasTrustRequiringResources;
-		const projectTrusted = shouldResolveProjectTrust
+		const projectTrusted = startupPolicy
 			? false
-			: (cachedProjectTrust ??
-				parsed.projectTrustOverride ??
-				(!hasTrustRequiringResources || trustStore.get(cwd) === true));
-		const runtimeSettingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted });
+			: shouldResolveProjectTrust
+				? false
+				: (cachedProjectTrust ??
+					parsed.projectTrustOverride ??
+					(!hasTrustRequiringResources || trustStore.get(cwd) === true));
+		const runtimeSettingsManager = startupPolicy
+			? SettingsManager.inMemory({ cacheWarming: "off" }, { projectTrusted: false })
+			: SettingsManager.create(cwd, agentDir, { projectTrusted });
 		const services = await createAgentSessionServices({
+			startupPolicy,
 			cwd,
 			agentDir,
 			settingsManager: runtimeSettingsManager,

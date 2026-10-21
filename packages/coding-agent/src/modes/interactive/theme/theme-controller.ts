@@ -17,6 +17,7 @@ type ThemeResult = { success: boolean; error?: string };
 
 export class InteractiveThemeController {
 	private readonly ui: TUI;
+	private readonly builtInOnly: boolean;
 	private readonly getSettingsManager: () => SettingsManager;
 	private readonly showError: (message: string) => void;
 	private readonly onChanged: () => void;
@@ -33,18 +34,20 @@ export class InteractiveThemeController {
 			showError: (message: string) => void;
 			onChanged: () => void;
 			initialThemeSetting?: string;
+			builtInOnly?: boolean;
 		},
 	) {
 		this.ui = ui;
+		this.builtInOnly = options.builtInOnly ?? false;
 		this.getSettingsManager = options.getSettingsManager;
 		this.showError = options.showError;
 		this.onChanged = options.onChanged;
-		this.currentThemeSetting = options.initialThemeSetting;
+		this.currentThemeSetting = this.builtInOnly ? "dark" : options.initialThemeSetting;
 		this.activeThemeName = resolveThemeSetting(
 			this.currentThemeSetting ?? this.getSettingsManager().getThemeSetting(),
 			this.terminalTheme,
 		);
-		initTheme(this.activeThemeName, true);
+		initTheme(this.activeThemeName, !this.builtInOnly);
 		this.bindTerminalColorSchemeListener();
 	}
 
@@ -57,6 +60,10 @@ export class InteractiveThemeController {
 	async applyFromSettings(): Promise<void> {
 		const settingsManager = this.getSettingsManager();
 		const themeSetting = this.currentThemeSetting ?? settingsManager.getThemeSetting();
+		if (this.builtInOnly) {
+			this.applyThemeName(themeSetting ?? "dark", true);
+			return;
+		}
 		const autoTheme = parseAutoThemeSetting(themeSetting);
 		if (autoTheme) {
 			this.terminalTheme = await detectTerminalThemeForAuto({ ui: this.ui, timeoutMs: 100 });
@@ -108,8 +115,8 @@ export class InteractiveThemeController {
 
 	preview(themeSettingOrName: string): void {
 		const themeName = resolveThemeSetting(themeSettingOrName, this.terminalTheme) ?? this.activeThemeName;
-		if (!themeName) return;
-		if (setTheme(themeName, true).success) {
+		if (!themeName || (this.builtInOnly && themeName !== "dark" && themeName !== "light")) return;
+		if (setTheme(themeName, !this.builtInOnly).success) {
 			this.ui.invalidate();
 			this.ui.requestRender();
 		}
@@ -130,7 +137,12 @@ export class InteractiveThemeController {
 	}
 
 	private applyThemeName(themeName: string, showError = false): ThemeResult {
-		const result = setTheme(themeName, true);
+		if (this.builtInOnly && themeName !== "dark" && themeName !== "light") {
+			const error = "managed-v1 supports built-in themes only";
+			if (showError) this.showError(error);
+			return { success: false, error };
+		}
+		const result = setTheme(themeName, !this.builtInOnly);
 		this.activeThemeName = result.success ? themeName : "dark";
 		this.notifyChanged();
 		if (!result.success && showError) {

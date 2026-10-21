@@ -239,6 +239,24 @@ C-class caps, manifest/allowlist/guard parity, and normal maintainer review.
 They do not broaden general eligibility or the trusted-sync bypass. Neither is
 classified as a security finding. Upstream submission remains human-led.
 
+### Managed-startup admission (2026-10-21)
+
+The maintainer approved the managed-startup forward-port and bounded cap
+resolution under [FingerTrap ADR-0039](https://github.com/psmfd/FingerTrap/blob/feat/managed-pi-startup/adrs/0039-qualify-managed-pi-on-maintained-base.md).
+Only patch 020 may increase the aggregate maximum to **7 C-class patches,
+2,200 per-patch insertions plus deletions, and 25 distinct upstream paths**.
+The other six patches remain subject to their existing eligibility and
+2,000-line budget. Include pending 020 in qualification accounting; no extra
+patch slot or file exemption is granted. This exception expires when 020 is
+dropped or upstream adopts equivalent behavior. Reevaluate and recount at
+every sync, including the next latest-release campaign; a breach stops it.
+
+Use upstream v0.87.1 (f07218c4d4bbc12bef056a7058c3dd49dfe41abe) for this
+candidate's residual diff, summing additions plus deletions for each patch's
+paths, including shared paths under every owner. Keep manifest/text/both guard
+sets identical. Guard logic, security classification, trusted-sync conditions,
+review requirements and production promotion gates remain unchanged.
+
 ## Upstream reporting gate
 
 Fixing a security finding in the mirror and reporting it upstream are separate
